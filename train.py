@@ -7,6 +7,7 @@ import os
 import sys
 from typing import Tuple, Optional, List
 
+import wandb
 from torch.utils.tensorboard import SummaryWriter
 
 from data.gbr_dataset import GreatBarrierReefDataset, collate_fn, get_transform
@@ -33,22 +34,22 @@ def get_data_loaders(root: str,
         tuple of first the dataloader for training and second the dataloader for
             validation.
     """
-    
+
     dataset = GreatBarrierReefDataset(root=root,
                                       annotation_file='train.csv',
                                       transforms=get_transform(True))
-    
+
     data_loader_train = torch.utils.data.DataLoader(
         dataset, batch_size=train_batch_size, shuffle=True,
         num_workers=train_num_workers, collate_fn=collate_fn, pin_memory=True)
-    
+
     dataset_val = GreatBarrierReefDataset(root=root,
                                           annotation_file='val.csv',
                                           transforms=get_transform(False))
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val, batch_size=val_batch_size, shuffle=False,
         num_workers=val_num_workers, collate_fn=collate_fn, pin_memory=True)
-    
+
     return data_loader_train, data_loader_val
 
 
@@ -67,12 +68,17 @@ def save_model(epoch: int, model: torch.nn.Module,
         checkpoint_path: path to the folder where the checkpoint should be saved to
         name: file name to which the model should be saved to
     """
+
     torch.save({
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
         'lr_scheduler_state_dict': lr_scheduler.state_dict()
     }, os.path.join(checkpoint_path, name))
+
+    artifact = wandb.Artifact("models", type="model")
+    artifact.add_file(os.path.join(checkpoint_path, name), name=name)
+    wandb.log_artifact(artifact)
 
 
 def print_loss(loss_dict: Dict[str, float], epoch: int, step: int,
@@ -119,11 +125,11 @@ def train_one_step(model: torch.nn.Module, images: torch.FloatTensor,
     loss_dict = model(images, targets)
     if 'total_loss' not in loss_dict.keys():
         loss_dict['total_loss'] = sum(loss for loss in loss_dict.values())
-    
+
     loss = loss_dict['total_loss']
-    
+
     loss_value = loss.item()
-    
+
     if not math.isfinite(loss_value):
         print("Loss is {}, stopping training".format(loss_value))
         sys.exit(1)
@@ -184,14 +190,14 @@ def train_and_evaluate(model: torch.nn.Module,
     """
     device = torch.device(
         'cuda') if torch.cuda.is_available() else torch.device('cpu')
-    
+
     data_loader_train, data_loader_val = get_data_loaders(root, train_batch_size, train_num_workers,
                                                           val_batch_size, val_num_workers)
-    
+
     model.to(device)
-    
+
     params = [p for p in model.parameters() if p.requires_grad]
-    
+
     optimizer = torch.optim.Adam(params, lr=learning_rate)
     total_steps = len(data_loader_train)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
@@ -204,20 +210,20 @@ def train_and_evaluate(model: torch.nn.Module,
         start_epoch = checkpoint['epoch']
     else:
         start_epoch = 0
-    
+
     metric_for_best_model = 'Precision/mAP'
     metric_should_be_large = True
     early_stopping_coefficient = 1 if metric_should_be_large else -1
     best_value = -np.inf * early_stopping_coefficient
     last_update = 0
-    
-    writer = SummaryWriter(os.path.join(checkpoint_path, 'Tensorboard'))
+
     for epoch in range(start_epoch + 1, num_epochs + 1):
         global_step = epoch * total_steps
-        
+
         learning_rate = lr_scheduler.state_dict()['_last_lr'][0]
-        writer.add_scalar('learning_rate', learning_rate, global_step)
-        
+
+        wandb.log({'learning_rate': learning_rate}, step=global_step)
+
         model.train()
         for step, (images, targets) in enumerate(data_loader_train):
             global_step = (epoch - 1) * total_steps + step
@@ -226,16 +232,19 @@ def train_and_evaluate(model: torch.nn.Module,
                        targets]
             loss_dict = train_one_step(model, images, targets, optimizer,
                                        gradient_clipping_norm)
-            plot_scalars_in_tensorboard('Training Loss/', loss_dict, writer,
-                                        global_step)
+            wandb.log({
+                'training_loss/' + key: value
+                for key, value in loss_dict.items()
+            }, step=global_step)
+
             print_loss(loss_dict, epoch, step + 1, total_steps)
         lr_scheduler.step()
-        
+
         if epoch % eval_every_n_epochs == 0:
             val_metrics, results = evaluate_and_plot(model, data_loader_val,
-                                                     writer=writer, device=device,
+                                                     device=device,
                                                      epoch=epoch)
-            
+
             last_update += 1
             if bool(val_metrics) and early_stopping_coefficient * val_metrics[metric_for_best_model] > \
                     early_stopping_coefficient * best_value:
@@ -243,21 +252,22 @@ def train_and_evaluate(model: torch.nn.Module,
                            checkpoint_path, 'best_model.pth')
                 best_value = val_metrics[metric_for_best_model]
                 last_update = 0
-        
+
         if epoch != 0 and epoch % save_every_n_epochs == 0:
             print('Saving model...')
             save_model(epoch, model, optimizer, lr_scheduler,
                        checkpoint_path, 'Epoch_' + str(epoch) + '.pth')
+
             delete_epoch = epoch - save_every_n_epochs * keep_last_n_checkpoints
             if delete_epoch >= 0:
                 delete_path = os.path.join(checkpoint_path, 'Epoch_' + str(delete_epoch) + '.pth')
                 if os.path.exists(delete_path):
                     os.remove(delete_path)
             print('Model saved.')
-        
+
         if last_update >= steps_without_improvement:
             print('Training stopped.')
             print(f'Best {metric_for_best_model}: {best_value}.')
             break
-    
-    writer.close()
+
+    wandb.finish()

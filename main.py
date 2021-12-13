@@ -3,6 +3,8 @@ Main file to run the training.
 """
 from pathlib import Path
 from datetime import datetime
+
+import wandb
 import yaml
 
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
@@ -22,10 +24,18 @@ if __name__ == '__main__':
     checkpoint_root = checkpoint_root.joinpath(date_time)
     checkpoint_root.mkdir(exist_ok=True, parents=True)
 
+    wandb.init(entity="cerebro-ai",
+               project="great-barrier-reef",
+               config=params,
+               name=checkpoint_root.name)
+
     model = fasterrcnn_resnet50_fpn(num_classes=2,
                                     trainable_backbone_layers=5,
                                     image_mean=[0.2652, 0.5724, 0.6195],
                                     image_std=[0.2155, 0.1917, 0.1979])
+
+    model.log_name = "fasterrcnn_resnet50_fpn"
+    wandb.watch(model, log_freq=100)
 
     train_and_evaluate(
         model=model,

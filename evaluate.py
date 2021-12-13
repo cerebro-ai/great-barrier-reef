@@ -4,6 +4,7 @@ Evaluation functions
 import os
 from typing import Tuple, Union, List
 
+import wandb
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import draw_bounding_boxes
 
@@ -104,16 +105,20 @@ def evaluate(model: torch.nn.Module,
 
 def evaluate_and_plot(model: torch.nn.Module,
                       data_loader: torch.utils.data.DataLoader,
-                      writer: torch.utils.tensorboard.SummaryWriter,
                       device: torch.device,
                       epoch: int = 0,
                       ):
     val_metrics, results = \
         evaluate(model, data_loader, device=device)
-    plot_scalars_in_tensorboard('Validation ', val_metrics, writer,
-                                epoch)
+
+    wandb.log({
+        "Validation "+key: value for
+        key, value in val_metrics.items()
+    })
+
     if results:
-        plot_images_in_tensorboard(results, writer, epoch)
+        for key, image in results.values():
+            wandb.log({str(key): wandb.Image(image)})
 
     return val_metrics, results
 
