@@ -37,3 +37,25 @@ Tested with
 - **tensorboard_utils.py**: functions to make plotting easier in Tensorboard
 - **coco_eval.py**, **coco_utils.py**, **pytorch_utils.py**: Help methods from [Torchvision](https://github.com/pytorch/vision/tree/main/references/detection) 
   to evaluate object detectors with pycocotools
+
+## Config
+Create the config file with the name `config.yaml` in the same directory as `main.py`.
+The variables under **params** will be logged.
+
+```yaml
+# config.yaml
+
+local:
+  dataset_root: "/home/.../great-barrier-reef/dataset"
+  checkpoint_root: "/home/.../great-barrier-reef/checkpoints"
+
+params:
+  num_epochs: 100
+  eval_every_n_epochs: 1
+  save_every_n_epochs: 5
+  train_batch_size: 6
+  val_batch_size: 6
+  train_num_workers: 0
+  val_num_workers: 0
+  learning_rate: 1.e-4
+```
