@@ -17,7 +17,6 @@ if __name__ == '__main__':
     params = config["params"]
 
     date_time = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
-    # TODO get checkpoint root from config or sane default and not dominiks path ;)
     checkpoint_root = Path(config["local"]["checkpoint_root"])
 
     checkpoint_root = checkpoint_root.joinpath(date_time)
