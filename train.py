@@ -36,7 +36,7 @@ def get_data_loaders(root: str,
     """
 
     dataset = GreatBarrierReefDataset(root=root,
-                                      annotation_file='train.csv',
+                                      annotation_file='train_mini.csv',
                                       transforms=get_transform(True))
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -44,7 +44,7 @@ def get_data_loaders(root: str,
         num_workers=train_num_workers, collate_fn=collate_fn, pin_memory=True)
 
     dataset_val = GreatBarrierReefDataset(root=root,
-                                          annotation_file='val.csv',
+                                          annotation_file='val_mini.csv',
                                           transforms=get_transform(False))
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val, batch_size=val_batch_size, shuffle=False,
@@ -76,9 +76,9 @@ def save_model(epoch: int, model: torch.nn.Module,
         'lr_scheduler_state_dict': lr_scheduler.state_dict()
     }, os.path.join(checkpoint_path, name))
 
-    artifact = wandb.Artifact("models", type="model")
-    artifact.add_file(os.path.join(checkpoint_path, name), name=name)
-    wandb.log_artifact(artifact)
+    # artifact = wandb.Artifact(name, type="model")
+    # artifact.add_file(os.path.join(checkpoint_path, name), name=name)
+    # wandb.log_artifact(artifact)
 
 
 def print_loss(loss_dict: Dict[str, float], epoch: int, step: int,
@@ -222,7 +222,7 @@ def train_and_evaluate(model: torch.nn.Module,
 
         learning_rate = lr_scheduler.state_dict()['_last_lr'][0]
 
-        wandb.log({'learning_rate': learning_rate}, step=global_step)
+        wandb.log({'learning_rate': learning_rate})
 
         model.train()
         for step, (images, targets) in enumerate(data_loader_train):
@@ -235,7 +235,7 @@ def train_and_evaluate(model: torch.nn.Module,
             wandb.log({
                 'training_loss/' + key: value
                 for key, value in loss_dict.items()
-            }, step=global_step)
+            })
 
             print_loss(loss_dict, epoch, step + 1, total_steps)
         lr_scheduler.step()
