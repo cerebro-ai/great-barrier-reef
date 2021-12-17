@@ -217,33 +217,57 @@ def train_and_evaluate(model: torch.nn.Module,
     best_value = -np.inf * early_stopping_coefficient
     last_update = 0
 
+    wandb.run.summary["best_model_metric"] = metric_for_best_model
+
     for epoch in range(start_epoch + 1, num_epochs + 1):
-        global_step = epoch * total_steps
+        global_step = (epoch-1) * total_steps
 
         learning_rate = lr_scheduler.state_dict()['_last_lr'][0]
 
-        wandb.log({'learning_rate': learning_rate})
+        wandb.log({
+            "learning_rate": learning_rate,
+            "epoch": epoch,
+            "global_step": global_step
+        })
 
         model.train()
         for step, (images, targets) in enumerate(data_loader_train):
-            global_step = (epoch - 1) * total_steps + step
+            global_step = (epoch - 1) * total_steps + step + 1
             images = images.to(device)
             targets = [{k: v.to(device) for k, v in t.items()} for t in
                        targets]
             loss_dict = train_one_step(model, images, targets, optimizer,
                                        gradient_clipping_norm)
+
             wandb.log({
-                'training_loss/' + key: value
-                for key, value in loss_dict.items()
+                "epoch": epoch,
+                "batch": step + 1,
+                "global_step": global_step,
+                **{
+                    "training/" + key: value
+                    for key, value in loss_dict.items()
+                }
             })
 
             print_loss(loss_dict, epoch, step + 1, total_steps)
+
         lr_scheduler.step()
 
         if epoch % eval_every_n_epochs == 0:
-            val_metrics = evaluate_and_plot(model, data_loader_val,
-                                                     device=device,
-                                                     epoch=epoch)
+            val_metrics, val_log_dict = evaluate_and_plot(model, data_loader_val,
+                                                          device=device,
+                                                          epoch=epoch)
+
+            wandb.log({
+                "epoch": epoch,
+                "global_step": epoch * total_steps,
+                "val_step": epoch // eval_every_n_epochs,
+                **{
+                    "validation/" + key: value
+                    for key, value in val_metrics.items()
+                },
+                **val_log_dict  # images and videos
+            })
 
             last_update += 1
             if bool(val_metrics) and early_stopping_coefficient * val_metrics[metric_for_best_model] > \
@@ -251,6 +275,7 @@ def train_and_evaluate(model: torch.nn.Module,
                 save_model(epoch, model, optimizer, lr_scheduler,
                            checkpoint_path, 'best_model.pth')
                 best_value = val_metrics[metric_for_best_model]
+                wandb.run.summary["best_value"] = best_value
                 last_update = 0
 
         if epoch != 0 and epoch % save_every_n_epochs == 0:
@@ -269,5 +294,6 @@ def train_and_evaluate(model: torch.nn.Module,
             print('Training stopped.')
             print(f'Best {metric_for_best_model}: {best_value}.')
             break
+        wandb_log_dict = {}
 
     wandb.finish()

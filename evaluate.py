@@ -133,27 +133,26 @@ def evaluate_and_plot(model: torch.nn.Module,
                       ):
     val_metrics, images_to_upload, videos = evaluate(model, data_loader, device=device)
 
-    wandb.log({
-        "Validation " + key: value for
-        key, value in val_metrics.items()
-    })
-
-    for image_id, img_dict in images_to_upload.items():
-        wandb.log({str(image_id): wandb.Image(img_dict["img"], boxes={
-            "prediction": {
-                "box_data": img_dict["prediction"],
-                "class_labels": {1: "-", 2: "starfish"}
-            },
-            "ground_truth": {
-                "box_data": img_dict["ground_truth"],
-                "class_labels": {1: "starfish"}
+    # create log dict with images and videos
+    wandb_log_dict = \
+        {
+            **{  # images
+                str(image_id): wandb.Image(img_dict["img"], boxes={
+                    "prediction": {
+                        "box_data": img_dict["prediction"],
+                        "class_labels": {1: "-", 2: "starfish"}
+                    },
+                    "ground_truth": {
+                        "box_data": img_dict["ground_truth"],
+                        "class_labels": {1: "starfish"}
+                    }
+                }) for image_id, img_dict in images_to_upload.items()},
+            **{  # videos
+                f"video_{i}": video for i, video in enumerate(videos)
             }
-        })})
+        }
 
-    for i, video in enumerate(videos):
-        wandb.log({f"video_{i}": video})
-
-    return val_metrics
+    return val_metrics, wandb_log_dict
 
 
 def evaluate_path(model: torch.nn.Module,
