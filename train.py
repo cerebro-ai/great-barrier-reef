@@ -241,7 +241,7 @@ def train_and_evaluate(model: torch.nn.Module,
         lr_scheduler.step()
 
         if epoch % eval_every_n_epochs == 0:
-            val_metrics, results = evaluate_and_plot(model, data_loader_val,
+            val_metrics = evaluate_and_plot(model, data_loader_val,
                                                      device=device,
                                                      epoch=epoch)
 
