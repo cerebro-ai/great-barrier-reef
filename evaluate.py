@@ -102,7 +102,7 @@ def evaluate(model: torch.nn.Module,
 
             # draw image with boxes for video
             img_with_boxes = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")
-            img_with_boxes = draw_bounding_boxes(img_with_boxes, target["boxes"], width=2)
+            img_with_boxes = draw_bounding_boxes(img_with_boxes, output["boxes"], width=2)
             # append to video buffer
             video_buffer.append(img_with_boxes.numpy())
 
