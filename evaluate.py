@@ -11,7 +11,9 @@ from torchvision.utils import draw_bounding_boxes
 from coco_eval import CocoEvaluator
 from coco_utils import get_coco_api_from_dataset
 from data import GreatBarrierReefDataset, collate_fn, get_transform
+from dataset.val_uploaded import image_ids_to_upload, img_id
 from tensorboard_utils import *
+from wandb_utils import VideoBuffer, create_box_data
 
 
 def reduce_dict(dict_list: List[Dict[str, float]],
@@ -43,12 +45,11 @@ def reduce_dict(dict_list: List[Dict[str, float]],
 def evaluate(model: torch.nn.Module,
              data_loader: torch.utils.data.DataLoader,
              device: torch.device) -> Tuple[Dict[str, float],
-                                            Dict[int, np.array],
                                             Dict[int, Dict],
-                                            Dict[int, Dict]
+                                            List[wandb.Video]
 ]:
     """ Evaluates the model on the data_loader and device and returns the losses,
-    COCO metrics and detections visualized on the image.
+    COCO metrics and images to be uploaded with their prediction and target boxes, and a list of videos.
 
     Args:
         model: PyTorch model
@@ -57,9 +58,8 @@ def evaluate(model: torch.nn.Module,
 
     Returns:
         measures: COCO metrics
-        results: image id -> image with bounding boxes
-        prediction_box_data: image_id -> List of box_data objects for predictions
-        ground_truth_box_data: image_id -> List of box_data objects for ground_truth boxes
+        imgs_to_upload: image id -> {img, prediction, ground_truth}
+        videos: List of wandb Videos
     """
     stats_tags = ['Precision/mAP', 'Precision/mAP@.50IOU', 'Precision/mAP@.75IOU', 'Precision/mAP (small)',
                   'Precision/mAP (medium)', 'Precision/mAP (large)',
@@ -70,60 +70,41 @@ def evaluate(model: torch.nn.Module,
     cpu_device = torch.device("cpu")
     model.eval()
 
+    # these set specifies image_id that will be uploaded to wandb with bounding boxes
+    img_ids_to_upload = [img_id(x) for x in image_ids_to_upload]
+
     coco = get_coco_api_from_dataset(data_loader.dataset)
     coco_evaluator = CocoEvaluator(coco, iou_types=["bbox"])
 
-    results = {}
-    prediction_box_data = {}
-    ground_truth_box_data = {}
+    images_to_upload = {}
+    video_buffer = VideoBuffer()
+
     for i, (images, targets) in enumerate(data_loader):
         images = list(img.to(device) for img in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         # torch.cuda.synchronize()
         outputs = model(images, targets)
-
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
 
-        imgs_with_boxes = []
         for image, output, target in zip(images, outputs, targets):
-            image = (image * 255).to(device=cpu_device, dtype=torch.uint8)
-            # image = draw_bounding_boxes(image, target['boxes'], width=3, colors='red')
-            # image = draw_bounding_boxes(image, output['boxes'], width=3)
-            imgs_with_boxes.append(image)
-
-        # build the wandb detection boxes
-        for output, target in zip(outputs, targets):
             image_id = target["image_id"].item()
-            if image_id not in prediction_box_data.keys():
-                prediction_box_data[image_id] = []
 
-            for box in output["boxes"]:
-                img_box = box.to(torch.int64).tolist()
-                box_data = {
-                    "position": {"minX": img_box[0], "minY": img_box[1], "maxX": img_box[2], "maxY": img_box[3]},
-                    "class_id": 2,
-                    "box_caption": "starfish",
-                    "scores": {"score": output["scores"][i].item()},
-                    "domain": "pixel"
+            # check if it is an image which which we want to upload
+            image = (image * 255).to(device=cpu_device, dtype=torch.uint8)
+
+            if image_id in img_ids_to_upload:
+                images_to_upload[image_id] = {
+                    "img": torch.permute(image, (1, 2, 0)).numpy(),  # permute such that (HxWxC)
+                    "ground_truth": create_box_data(target, mode="ground_truth"),
+                    "prediction": create_box_data(output, mode="prediction")
                 }
-                prediction_box_data[image_id].append(box_data)
 
-            if image_id not in ground_truth_box_data.keys():
-                ground_truth_box_data[image_id] = []
-
-            for box in target["boxes"]:
-                img_box = box.to(torch.int64).tolist()
-                box_data = {
-                    "position": {"minX": img_box[0], "minY": img_box[1], "maxX": img_box[2], "maxY": img_box[3]},
-                    "class_id": 1,
-                    "box_caption": "starfish",
-                    "scores": {"score": 1},
-                    "domain": "pixel"
-                }
-                ground_truth_box_data[image_id].append(box_data)
-
-        results.update({target["image_id"].item(): img for target, img in zip(targets, imgs_with_boxes)})
+            # draw image with boxes for video
+            img_with_boxes = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")
+            img_with_boxes = draw_bounding_boxes(img_with_boxes, output["boxes"], width=2)
+            # append to video buffer
+            video_buffer.append(img_with_boxes.numpy())
 
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         coco_evaluator.update(res)
@@ -138,8 +119,11 @@ def evaluate(model: torch.nn.Module,
     stats = coco_evaluator.coco_eval['bbox'].stats
     val_metrics = {tag: stat for tag, stat in zip(stats_tags, stats)}
 
+    videos = video_buffer.export()
+    video_buffer.reset()
+
     torch.set_num_threads(n_threads)
-    return val_metrics, results, prediction_box_data, ground_truth_box_data
+    return val_metrics, images_to_upload, videos
 
 
 def evaluate_and_plot(model: torch.nn.Module,
@@ -147,28 +131,29 @@ def evaluate_and_plot(model: torch.nn.Module,
                       device: torch.device,
                       epoch: int = 0,
                       ):
-    val_metrics, results, prediction_box_data, ground_truth_box_data = evaluate(model, data_loader, device=device)
+    val_metrics, images_to_upload, videos = evaluate(model, data_loader, device=device)
 
     wandb.log({
         "Validation " + key: value for
         key, value in val_metrics.items()
     })
 
-    if results:
-        for key, image in results.items():
-            img = torch.permute(image, (1, 2, 0)).numpy()
-            wandb.log({str(key): wandb.Image(img, boxes={
-                "predictions": {
-                    "box_data": prediction_box_data[key],
-                    "class_labels": {1: "place_holder", 2: "starfish"}
-                },
-                "ground_truth": {
-                    "box_data": ground_truth_box_data[key],
-                    "class_labels": {1: "starfish"}
-                }
-            })})
+    for image_id, img_dict in images_to_upload.items():
+        wandb.log({str(image_id): wandb.Image(img_dict["img"], boxes={
+            "prediction": {
+                "box_data": img_dict["prediction"],
+                "class_labels": {1: "-", 2: "starfish"}
+            },
+            "ground_truth": {
+                "box_data": img_dict["ground_truth"],
+                "class_labels": {1: "starfish"}
+            }
+        })})
 
-    return val_metrics, results
+    for i, video in enumerate(videos):
+        wandb.log({f"video_{i}": video})
+
+    return val_metrics
 
 
 def evaluate_path(model: torch.nn.Module,
