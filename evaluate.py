@@ -2,14 +2,14 @@
 Evaluation functions
 """
 import os
+import json
 from typing import Tuple, Union, List
 
 import wandb
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.ops import box_iou
 from torchvision.utils import draw_bounding_boxes
 
-from coco_eval import CocoEvaluator
-from coco_utils import get_coco_api_from_dataset
 from data import GreatBarrierReefDataset, collate_fn, get_transform
 from dataset.val_uploaded import image_ids_to_upload, img_id
 from tensorboard_utils import *
@@ -41,6 +41,83 @@ def reduce_dict(dict_list: List[Dict[str, float]],
     return out
 
 
+def get_matched_indices(t):
+    matched_row_indices = []
+    matched_column_indices = []
+    while True:
+        row_indices = (t > 0).any(dim=1).nonzero().view(-1)
+        if row_indices.shape[0] == 0:
+            break
+        row_index = row_indices[0].item()
+        column_index = t[row_index].argmax().item()
+        matched_row_indices.append(row_index)
+        matched_column_indices.append(column_index)
+        t[:, column_index] = 0
+        t[row_index] = 0
+    return torch.as_tensor(matched_row_indices, dtype=torch.long), \
+           torch.as_tensor(matched_column_indices, dtype=torch.long)
+
+
+def f_score(precision, recall, beta=2.):
+    beta_2 = beta ** 2
+    return (1 + beta_2) * (precision * recall) / (beta_2 * precision + recall)
+
+
+class Evaluator:
+    def __init__(self, device, iou_thresholds=None):
+        self.device = device
+        if iou_thresholds is None:
+            iou_thresholds = torch.linspace(0.3, 0.8, int(np.round((0.8 - 0.3) / .05)) + 1)
+        self.iou_thresholds = iou_thresholds
+        self.mask_all = torch.zeros(0, iou_thresholds.shape[0], device=device)
+        self.scores_all = torch.zeros(0, device=device)
+        self.annotations_len_all = 0
+
+    def update(self, predictions, scores, annotations):
+        scores, indices = scores.sort(descending=True)
+        predictions = predictions[indices]
+        iou_values = box_iou(predictions, annotations)
+        row_masks = torch.zeros(predictions.shape[0], self.iou_thresholds.shape[0], device=self.device)
+        for iou_index, iou_threshold in enumerate(self.iou_thresholds):
+            iou_values[iou_values < iou_threshold] = 0.
+            prediction_indices, annotation_indices = get_matched_indices(iou_values.clone())
+            row_masks[prediction_indices, iou_index] = True
+
+        self.mask_all = torch.cat([self.mask_all, row_masks], dim=0)
+        self.scores_all = torch.cat([self.scores_all, scores], dim=0)
+        self.annotations_len_all += annotations.shape[0]
+
+    def accumulate(self):
+        self.scores_all, indices_all = self.scores_all.sort(descending=True)
+        self.mask_all = self.mask_all[indices_all]
+        cumsum = self.mask_all.cumsum(0)
+        arange = torch.arange(1, self.mask_all.shape[0] + 1, device=self.device)
+        precision = cumsum / arange[:, None]
+        recall = cumsum / self.annotations_len_all
+        f2_score = f_score(precision, recall)
+
+        precision_average = precision.mean(dim=1)
+        recall_average = recall.mean(dim=1)
+        f2_score_average = f2_score.mean(dim=1)
+
+        if f2_score_average.shape[0] > 0:
+            f2_score_average.nan_to_num_(-1)
+            f2_score_best, best_index = f2_score_average.max(dim=0)
+            optimal_threshold = self.scores_all[best_index]
+            precision_best = precision_average[best_index]
+            recall_best = recall_average[best_index]
+
+            metrics = {
+                'precision': precision_best.item(),
+                'recall': recall_best.item(),
+                'F2 score': f2_score_best.item(),
+                'optimal_threshold': optimal_threshold.item(),
+            }
+        else:
+            metrics = {}
+        return metrics, (recall_average, precision_average)
+
+
 @torch.no_grad()
 def evaluate(model: torch.nn.Module,
              data_loader: torch.utils.data.DataLoader,
@@ -49,7 +126,7 @@ def evaluate(model: torch.nn.Module,
                                             List[wandb.Video]
 ]:
     """ Evaluates the model on the data_loader and device and returns the losses,
-    COCO metrics and images to be uploaded with their prediction and target boxes, and a list of videos.
+    COCO metrics and detections visualized on the image.
 
     Args:
         model: PyTorch model
@@ -61,20 +138,11 @@ def evaluate(model: torch.nn.Module,
         imgs_to_upload: image id -> {img, prediction, ground_truth}
         videos: List of wandb Videos
     """
-    stats_tags = ['Precision/mAP', 'Precision/mAP@.50IOU', 'Precision/mAP@.75IOU', 'Precision/mAP (small)',
-                  'Precision/mAP (medium)', 'Precision/mAP (large)',
-                  'Recall/AR@1', 'Recall/AR@10', 'Recall/AR@100', 'Recall/AR@100 (small)', 'Recall/AR@100 (medium)',
-                  'Recall/AR@100 (large)']
-    n_threads = torch.get_num_threads()
-    torch.set_num_threads(1)
-    cpu_device = torch.device("cpu")
     model.eval()
 
+    evaluator = Evaluator(device=device)
     # these set specifies image_id that will be uploaded to wandb with bounding boxes
     img_ids_to_upload = [img_id(x) for x in image_ids_to_upload]
-
-    coco = get_coco_api_from_dataset(data_loader.dataset)
-    coco_evaluator = CocoEvaluator(coco, iou_types=["bbox"])
 
     images_to_upload = {}
     video_buffer = VideoBuffer()
@@ -85,13 +153,12 @@ def evaluate(model: torch.nn.Module,
 
         # torch.cuda.synchronize()
         outputs = model(images, targets)
-        outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
 
         for image, output, target in zip(images, outputs, targets):
             image_id = target["image_id"].item()
 
-            # check if it is an image which which we want to upload
-            image = (image * 255).to(device=cpu_device, dtype=torch.uint8)
+            # check if it is an image which we want to upload
+            image = (image * 255).to(device=torch.device('cpu'), dtype=torch.uint8)
 
             if image_id in img_ids_to_upload:
                 images_to_upload[image_id] = {
@@ -106,23 +173,17 @@ def evaluate(model: torch.nn.Module,
             # append to video buffer
             video_buffer.append(img_with_boxes.numpy())
 
-        res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
-        coco_evaluator.update(res)
-
-    # gather the stats from all processes
-    coco_evaluator.synchronize_between_processes()
+            evaluator.update(predictions=output['boxes'],
+                             scores=output['scores'],
+                             annotations=target['boxes'])
 
     # accumulate predictions from all images
-    coco_evaluator.accumulate()
-    coco_evaluator.summarize()
-
-    stats = coco_evaluator.coco_eval['bbox'].stats
-    val_metrics = {tag: stat for tag, stat in zip(stats_tags, stats)}
+    val_metrics, pr_curve = evaluator.accumulate()
 
     videos = video_buffer.export()
     video_buffer.reset()
 
-    torch.set_num_threads(n_threads)
+    print(json.dumps(val_metrics, indent=4))
     return val_metrics, images_to_upload, videos
 
 

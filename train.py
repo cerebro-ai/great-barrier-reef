@@ -36,7 +36,7 @@ def get_data_loaders(root: str,
     """
 
     dataset = GreatBarrierReefDataset(root=root,
-                                      annotation_file='train_mini.csv',
+                                      annotation_file='train.csv',
                                       transforms=get_transform(True))
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -44,7 +44,7 @@ def get_data_loaders(root: str,
         num_workers=train_num_workers, collate_fn=collate_fn, pin_memory=True)
 
     dataset_val = GreatBarrierReefDataset(root=root,
-                                          annotation_file='val_mini.csv',
+                                          annotation_file='val.csv',
                                           transforms=get_transform(False))
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val, batch_size=val_batch_size, shuffle=False,
@@ -211,7 +211,7 @@ def train_and_evaluate(model: torch.nn.Module,
     else:
         start_epoch = 0
 
-    metric_for_best_model = 'Precision/mAP'
+    metric_for_best_model = 'F2 score'
     metric_should_be_large = True
     early_stopping_coefficient = 1 if metric_should_be_large else -1
     best_value = -np.inf * early_stopping_coefficient
@@ -220,7 +220,7 @@ def train_and_evaluate(model: torch.nn.Module,
     wandb.run.summary["best_model_metric"] = metric_for_best_model
 
     for epoch in range(start_epoch + 1, num_epochs + 1):
-        global_step = (epoch-1) * total_steps
+        global_step = (epoch - 1) * total_steps
 
         learning_rate = lr_scheduler.state_dict()['_last_lr'][0]
 
