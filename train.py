@@ -294,6 +294,5 @@ def train_and_evaluate(model: torch.nn.Module,
             print('Training stopped.')
             print(f'Best {metric_for_best_model}: {best_value}.')
             break
-        wandb_log_dict = {}
 
     wandb.finish()

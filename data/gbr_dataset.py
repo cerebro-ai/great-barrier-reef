@@ -4,13 +4,14 @@ Dataset for the great barrier reef kaggle challenge
 """
 
 from os.path import join
-from typing import Dict, Tuple, Callable, Optional, Union
+from typing import Dict, Tuple, Union
 
+import albumentations as A
+import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
-
-import data.transforms as T
+from albumentations.pytorch import transforms as At
 
 
 class GreatBarrierReefDataset(torch.utils.data.Dataset):
@@ -19,19 +20,15 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
     Attributes:
         image_root: path to the folder with the images
         annotation_file: file with the annotations (train.csv or val.csv)
-        transforms: transformations that should be applied on the images and
-            targets
+        transforms: transformations that should be applied on the images and targets.
+            See https://albumentations.ai/docs/
 
     """
 
     def __init__(self,
                  root: str,
                  annotation_file: str,
-                 transforms: Optional[Callable[[Image.Image,
-                                                Dict[str, torch.Tensor]],
-                                               Tuple[torch.Tensor,
-                                                     Dict[str, torch.Tensor]]]]
-                 = None):
+                 transforms: A.DualTransform = None):
         """ Inits the great barrier reef dataset.
 
         The root path should contain the subfolder train_images with subfolders
@@ -68,14 +65,14 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                 transform)
         """
         annotations = self.annotation_file.loc[idx]
-        boxes = torch.tensor([list(box.values()) for box in annotations.annotations])
+        boxes = np.array([list(box.values()) for box in annotations.annotations])
         if boxes.shape[0] != 0:
             boxes[:, 2:] += boxes[:, :2]
         else:
             boxes = boxes.view(0, 4)
 
         image_path = join(self.image_root, f'video_{annotations.video_id}', f'{annotations.video_frame}.jpg')
-        image = Image.open(image_path)
+        image = np.asarray(Image.open(image_path))
 
         meta_keys = ['video_id', 'sequence', 'video_frame', 'sequence_frame']
 
@@ -83,13 +80,18 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         image_id = f'{annotations.video_id}{annotations.video_frame:05d}'
         area = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
         iscrowd = torch.zeros(boxes.shape[0], dtype=torch.int64)
+        labels = np.zeros(boxes.shape[0])
 
         target = {'boxes': boxes, 'labels': torch.ones(boxes.shape[0], dtype=torch.int64),
                   'image_id': torch.as_tensor(int(image_id)), 'area': area, 'iscrowd': iscrowd,
                   **{key: torch.as_tensor(value) for key, value in annotations[meta_keys].items()}}
 
         if self.transforms is not None:
-            image, target = self.transforms(image, target)
+            transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
+            image = transformed["image"] / 255
+            target["boxes"] = torch.tensor(transformed["bboxes"])
+            target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
+                    target["boxes"][:, 3] - target["boxes"][:, 1])
 
         return image, target
 
@@ -108,7 +110,7 @@ def collate_fn(batch):
 
 
 def get_transform(train: bool = True,
-                  size: Tuple[int, int] = (512, 512)) -> T.Compose:
+                  size: Tuple[int, int] = (512, 512)) -> A.Compose:
     """ Returns the transforms for the images and targets.
 
     Transformations:
@@ -121,6 +123,17 @@ def get_transform(train: bool = True,
     Returns:
         callable that applies the transformations on images and targets.
     """
-    transforms = []
-    transforms.append(T.ToTensor())
-    return T.Compose(transforms)
+    if train:
+        transforms = [
+            A.HorizontalFlip(p=0.5),
+            A.OneOf([
+                A.RandomSizedBBoxSafeCrop(height=720, width=1280),
+                A.ShiftScaleRotate(),
+            ]),
+            A.RandomBrightnessContrast(p=0.5),
+            A.MotionBlur(),
+        ]
+    else:
+        transforms = []
+    transforms.append(At.ToTensorV2())
+    return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc", label_fields=["labels"]))
