@@ -203,7 +203,7 @@ def train_and_evaluate(model: torch.nn.Module,
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
     if existing_checkpoint_path:
         print('Loading checkpoint from ', existing_checkpoint_path)
-        checkpoint = torch.load(existing_checkpoint_path)
+        checkpoint = torch.load(existing_checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler_state_dict'])
@@ -266,7 +266,7 @@ def train_and_evaluate(model: torch.nn.Module,
                     "validation/" + key: value
                     for key, value in val_metrics.items()
                 },
-                **val_log_dict  # images and videos
+                **val_log_dict  # images, videos and plots
             })
 
             last_update += 1

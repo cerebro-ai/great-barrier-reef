@@ -1,14 +1,15 @@
 """ Created by Dominik Schnaus at 12.12.2021.
 Evaluation functions
 """
-import os
 import json
+import os
 from typing import Tuple, Union, List
 
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.ops import box_iou
 from torchvision.utils import draw_bounding_boxes
+from wandb.sdk.data_types import WBValue
 
 from data import GreatBarrierReefDataset, collate_fn, get_transform
 from dataset.val_uploaded import image_ids_to_upload, img_id
@@ -123,7 +124,8 @@ def evaluate(model: torch.nn.Module,
              data_loader: torch.utils.data.DataLoader,
              device: torch.device) -> Tuple[Dict[str, float],
                                             Dict[int, Dict],
-                                            List[wandb.Video]
+                                            List[wandb.Video],
+                                            Dict[str, WBValue]
 ]:
     """ Evaluates the model on the data_loader and device and returns the losses,
     COCO metrics and detections visualized on the image.
@@ -137,6 +139,7 @@ def evaluate(model: torch.nn.Module,
         measures: COCO metrics
         imgs_to_upload: image id -> {img, prediction, ground_truth}
         videos: List of wandb Videos
+        wandb_objects: Dict {str -> WandB object}
     """
     model.eval()
 
@@ -180,11 +183,23 @@ def evaluate(model: torch.nn.Module,
     # accumulate predictions from all images
     val_metrics, pr_curve = evaluator.accumulate()
 
+    if val_metrics:
+        data = [[x, y] for x, y in zip(*pr_curve)]
+        table = wandb.Table(columns=["recall", "precision"], data=data)
+        wandb_objects = {"pr_curve": wandb.plot_table(
+            "wandb/area-under-curve/v0",
+            table,
+            {"x": "recall", "y": "precision"},
+            {"title": "Precision v. Recall"},
+        )}
+    else:
+        wandb_objects = {}
+
     videos = video_buffer.export()
     video_buffer.reset()
 
     print(json.dumps(val_metrics, indent=4))
-    return val_metrics, images_to_upload, videos
+    return val_metrics, images_to_upload, videos, wandb_objects
 
 
 def evaluate_and_plot(model: torch.nn.Module,
@@ -192,7 +207,7 @@ def evaluate_and_plot(model: torch.nn.Module,
                       device: torch.device,
                       epoch: int = 0,
                       ):
-    val_metrics, images_to_upload, videos = evaluate(model, data_loader, device=device)
+    val_metrics, images_to_upload, videos, wandb_objects = evaluate(model, data_loader, device=device)
 
     # create log dict with images and videos
     wandb_log_dict = \
@@ -210,7 +225,9 @@ def evaluate_and_plot(model: torch.nn.Module,
                 }) for image_id, img_dict in images_to_upload.items()},
             **{  # videos
                 f"video_{i}": video for i, video in enumerate(videos)
-            }
+            },
+            # pr-curve and other plots
+            **wandb_objects
         }
 
     return val_metrics, wandb_log_dict

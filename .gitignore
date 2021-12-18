@@ -1,4 +1,5 @@
 /checkpoints/
 /dataset/train_images/
-
+/wandb
 config.yaml
+/.idea
