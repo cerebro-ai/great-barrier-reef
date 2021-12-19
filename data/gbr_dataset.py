@@ -12,6 +12,16 @@ import pandas as pd
 import torch
 from PIL import Image
 from albumentations.pytorch import transforms as At
+from torch.autograd import Variable
+
+from dataset.preprocess.net.Ushape_Trans import Generator
+
+
+def compute_box_area(boxes):
+    if len(boxes) > 0:
+        return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+    else:
+        return []
 
 
 class GreatBarrierReefDataset(torch.utils.data.Dataset):
@@ -69,7 +79,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         if boxes.shape[0] != 0:
             boxes[:, 2:] += boxes[:, :2]
         else:
-            boxes = boxes.view(0, 4)
+            boxes = np.empty((0, 4))
 
         image_path = join(self.image_root, f'video_{annotations.video_id}', f'{annotations.video_frame}.jpg')
         image = np.asarray(Image.open(image_path))
@@ -78,7 +88,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
 
         # needed for pycocotools
         image_id = f'{annotations.video_id}{annotations.video_frame:05d}'
-        area = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+        area = compute_box_area(boxes)
         iscrowd = torch.zeros(boxes.shape[0], dtype=torch.int64)
         labels = np.zeros(boxes.shape[0])
 
@@ -90,8 +100,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
             transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
             image = transformed["image"] / 255
             target["boxes"] = torch.tensor(transformed["bboxes"])
-            target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
-                    target["boxes"][:, 3] - target["boxes"][:, 1])
+            target["area"] = compute_box_area(target["boxes"])
 
         return image, target
 
@@ -126,12 +135,10 @@ def get_transform(train: bool = True,
     if train:
         transforms = [
             A.HorizontalFlip(p=0.5),
-            A.OneOf([
-                A.RandomSizedBBoxSafeCrop(height=720, width=1280),
-                A.ShiftScaleRotate(),
-            ]),
-            A.RandomBrightnessContrast(p=0.5),
             A.MotionBlur(),
+            A.Perspective(),
+            A.RandomBrightnessContrast(p=0.5),
+            A.RandomSizedBBoxSafeCrop(height=256, width=256, p=1)
         ]
     else:
         transforms = []
