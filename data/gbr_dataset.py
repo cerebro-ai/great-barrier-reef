@@ -25,6 +25,8 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
 
     """
 
+    ANNOTATIONS_COLUMN = "clamped_annotations"
+
     def __init__(self,
                  root: str,
                  annotation_file: str,
@@ -46,7 +48,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         annotation_path = join(root, annotation_file)
 
         self.annotation_file = pd.read_csv(annotation_path)
-        self.annotation_file.annotations = self.annotation_file.annotations.apply(eval)
+        self.annotation_file[self.ANNOTATIONS_COLUMN] = self.annotation_file[self.ANNOTATIONS_COLUMN].apply(eval)
 
         self.transforms = transforms
 
@@ -65,11 +67,8 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                 transform)
         """
         annotations = self.annotation_file.loc[idx]
-        boxes = torch.tensor([list(box.values()) for box in annotations.annotations])
-        if boxes.shape[0] != 0:
-            boxes[:, 2:] += boxes[:, :2]
-        else:
-            boxes = boxes.view(0, 4)
+        boxes = torch.tensor([list(box.values()) for box in annotations[self.ANNOTATIONS_COLUMN]]).view(-1, 4)
+        boxes[:, 2:] += boxes[:, :2]
 
         image_path = join(self.image_root, f'video_{annotations.video_id}', f'{annotations.video_frame}.jpg')
         image = np.asarray(Image.open(image_path))
@@ -89,9 +88,9 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
             image = transformed["image"] / 255
-            target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4)
+            target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4).clip(0, 255)
             target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
-                        target["boxes"][:, 3] - target["boxes"][:, 1])
+                    target["boxes"][:, 3] - target["boxes"][:, 1])
 
         return image, target
 

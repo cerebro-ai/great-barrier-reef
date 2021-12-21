@@ -26,8 +26,9 @@ if __name__ == '__main__':
 
     wandb.init(entity="cerebro-ai",
                project="great-barrier-reef",
-               config=params,
-               name=checkpoint_root.name)
+               notes=f"(checkpoint: {checkpoint_root.name})",
+               config=params
+               )
 
     model = fasterrcnn_resnet50_fpn(num_classes=2,
                                     trainable_backbone_layers=5,
