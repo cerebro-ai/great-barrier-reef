@@ -85,19 +85,12 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                   'image_id': torch.as_tensor(int(image_id)), 'area': area, 'iscrowd': iscrowd,
                   **{key: torch.as_tensor(value) for key, value in annotations[meta_keys].items()}}
 
-        no_transform = True
-        while no_transform:
-            try:
-                if self.transforms is not None:
-                    transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
-                    image = transformed["image"] / 255
-                    target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4).clip(0, 255)
-                    target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
-                            target["boxes"][:, 3] - target["boxes"][:, 1])
-                    no_transform = False
-            except ValueError as e:
-                # transformation failed / most possible because the resulting bounding boxes got degenerate
-                logging.error(e)
+        if self.transforms is not None:
+            transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
+            image = transformed["image"] / 255
+            target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4)
+            target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
+                    target["boxes"][:, 3] - target["boxes"][:, 1])
 
         return image, target
 
@@ -131,7 +124,7 @@ def get_transform(train: bool = True,
     """
     if train:
         transforms = [
-            A.RandomSizedBBoxSafeCrop(height=256, width=256, p=1),
+            A.RandomSizedBBoxSafeCrop(height=512, width=512, p=1),
             A.HorizontalFlip(p=0.5),
             A.MotionBlur(),
             A.Perspective(),
