@@ -14,13 +14,6 @@ from PIL import Image
 from albumentations.pytorch import transforms as At
 
 
-def compute_box_area(boxes):
-    if len(boxes) > 0:
-        return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-    else:
-        return []
-
-
 class GreatBarrierReefDataset(torch.utils.data.Dataset):
     """GreatBarrierReefDataset.
 
@@ -72,11 +65,11 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                 transform)
         """
         annotations = self.annotation_file.loc[idx]
-        boxes = np.array([list(box.values()) for box in annotations.annotations])
+        boxes = torch.tensor([list(box.values()) for box in annotations.annotations])
         if boxes.shape[0] != 0:
             boxes[:, 2:] += boxes[:, :2]
         else:
-            boxes = np.empty((0, 4))
+            boxes = boxes.view(0, 4)
 
         image_path = join(self.image_root, f'video_{annotations.video_id}', f'{annotations.video_frame}.jpg')
         image = np.asarray(Image.open(image_path))
@@ -85,7 +78,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
 
         # needed for pycocotools
         image_id = f'{annotations.video_id}{annotations.video_frame:05d}'
-        area = compute_box_area(boxes)
+        area = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
         iscrowd = torch.zeros(boxes.shape[0], dtype=torch.int64)
         labels = np.zeros(boxes.shape[0])
 
@@ -96,8 +89,9 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
             image = transformed["image"] / 255
-            target["boxes"] = torch.tensor(transformed["bboxes"])
-            target["area"] = compute_box_area(target["boxes"])
+            target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4)
+            target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
+                        target["boxes"][:, 3] - target["boxes"][:, 1])
 
         return image, target
 
