@@ -12,9 +12,6 @@ import pandas as pd
 import torch
 from PIL import Image
 from albumentations.pytorch import transforms as At
-from torch.autograd import Variable
-
-from dataset.preprocess.net.Ushape_Trans import Generator
 
 
 def compute_box_area(boxes):
