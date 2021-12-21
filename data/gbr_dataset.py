@@ -2,7 +2,7 @@
 Dataset for the great barrier reef kaggle challenge
 (https://www.kaggle.com/c/tensorflow-great-barrier-reef/data)
 """
-
+import logging
 from os.path import join
 from typing import Dict, Tuple, Union
 
@@ -85,12 +85,19 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                   'image_id': torch.as_tensor(int(image_id)), 'area': area, 'iscrowd': iscrowd,
                   **{key: torch.as_tensor(value) for key, value in annotations[meta_keys].items()}}
 
-        if self.transforms is not None:
-            transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
-            image = transformed["image"] / 255
-            target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4).clip(0, 255)
-            target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
-                    target["boxes"][:, 3] - target["boxes"][:, 1])
+        no_transform = True
+        while no_transform:
+            try:
+                if self.transforms is not None:
+                    transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
+                    image = transformed["image"] / 255
+                    target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4).clip(0, 255)
+                    target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
+                            target["boxes"][:, 3] - target["boxes"][:, 1])
+                    no_transform = False
+            except ValueError as e:
+                # transformation failed / most possible because the resulting bounding boxes got degenerate
+                logging.error(e)
 
         return image, target
 
