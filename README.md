@@ -48,6 +48,7 @@ The variables under **params** will be logged.
 local:
   dataset_root: "/home/.../great-barrier-reef/dataset"
   checkpoint_root: "/home/.../great-barrier-reef/checkpoints"
+  resume_checkpoint: "2021-12-17T23_32_18/best_model.pth"
 
 params:
   num_epochs: 100

@@ -24,6 +24,12 @@ if __name__ == '__main__':
     checkpoint_root = checkpoint_root.joinpath(date_time)
     checkpoint_root.mkdir(exist_ok=True, parents=True)
 
+    # set checkpoint to resume from
+    existing_checkpoint = config["local"].get("resume_checkpoint", None)
+    existing_checkpoint_path = str(checkpoint_root.parent.joinpath(existing_checkpoint)) \
+        if existing_checkpoint \
+        else None
+
     wandb.init(entity="cerebro-ai",
                project="great-barrier-reef",
                notes=f"(checkpoint: {checkpoint_root.name})",
@@ -50,4 +56,5 @@ if __name__ == '__main__':
         train_num_workers=params["train_num_workers"],
         val_num_workers=params["val_num_workers"],
         learning_rate=float(params["learning_rate"]),
+        existing_checkpoint_path=existing_checkpoint_path
     )
