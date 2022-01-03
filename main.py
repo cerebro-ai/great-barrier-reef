@@ -8,6 +8,7 @@ import wandb
 import yaml
 
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from wandb.sdk.wandb_run import Run
 
 from train import train_and_evaluate
 
@@ -19,22 +20,23 @@ if __name__ == '__main__':
     params = config["params"]
 
     date_time = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
-    checkpoint_root = Path(config["local"]["checkpoint_root"])
+    run: Run = wandb.init(entity="cerebro-ai",
+                          project="great-barrier-reef",
+                          notes=f"({date_time})",
+                          config=params
+                          )
 
-    checkpoint_root = checkpoint_root.joinpath(date_time)
+    # get the checkpoint path from the run name and create the folder
+    # fallback to date_time if wandb runs in offline mode
+    checkpoint_root = Path(config["local"]["checkpoint_root"])
+    checkpoint_root = checkpoint_root.joinpath(run.name if run.name else date_time)
     checkpoint_root.mkdir(exist_ok=True, parents=True)
 
-    # set checkpoint to resume from
+    # if a checkpoint is given construct it from the checkpoint directory
     existing_checkpoint = config["local"].get("resume_checkpoint", None)
     existing_checkpoint_path = str(checkpoint_root.parent.joinpath(existing_checkpoint)) \
         if existing_checkpoint \
         else None
-
-    wandb.init(entity="cerebro-ai",
-               project="great-barrier-reef",
-               notes=f"(checkpoint: {checkpoint_root.name})",
-               config=params
-               )
 
     model = fasterrcnn_resnet50_fpn(num_classes=2,
                                     trainable_backbone_layers=5,
