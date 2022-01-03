@@ -47,6 +47,9 @@ The variables under **params** will be logged.
 
 local:
   dataset_root: "/home/.../great-barrier-reef/dataset"
+  train_annotations_file: "reef_starter_0.05/train.csv"
+  val_annotations_file: "reef_starter_0.05/val.csv"
+  
   checkpoint_root: "/home/.../great-barrier-reef/checkpoints"
   resume_checkpoint: "2021-12-17T23_32_18/best_model.pth"
 

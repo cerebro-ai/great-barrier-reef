@@ -30,7 +30,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
     def __init__(self,
                  root: str,
                  annotation_file: str,
-                 transforms: A.DualTransform = None):
+                 transforms=None):
         """ Inits the great barrier reef dataset.
 
         The root path should contain the subfolder train_images with subfolders

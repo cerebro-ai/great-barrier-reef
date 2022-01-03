@@ -47,6 +47,8 @@ if __name__ == '__main__':
     train_and_evaluate(
         model=model,
         root=config["local"]["dataset_root"],
+        train_annotations_file=config["local"]["train_annotations_file"],
+        val_annotations_file=config["local"]["val_annotations_file"],
         num_epochs=params["num_epochs"],
         checkpoint_path=str(checkpoint_root),
         eval_every_n_epochs=params["eval_every_n_epochs"],

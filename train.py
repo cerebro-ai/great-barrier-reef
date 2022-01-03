@@ -16,6 +16,8 @@ from tensorboard_utils import *
 
 
 def get_data_loaders(root: str,
+                     train_annotations_file: str,
+                     val_annotations_file: str,
                      train_batch_size: int,
                      train_num_workers: int,
                      val_batch_size: int,
@@ -25,6 +27,8 @@ def get_data_loaders(root: str,
 
     Args:
         root: path to the root folder of the images and annotations.
+        train_annotations_file: path to the train annotations from root
+        val_annotations_file: path to the validation annotations from root
         train_batch_size: size of the batches used during training.
         train_num_workers: number of workers used during training.
         val_batch_size: size of the batches used during validation.
@@ -36,7 +40,7 @@ def get_data_loaders(root: str,
     """
 
     dataset = GreatBarrierReefDataset(root=root,
-                                      annotation_file='train.csv',
+                                      annotation_file=train_annotations_file,
                                       transforms=get_transform(True))
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -44,7 +48,7 @@ def get_data_loaders(root: str,
         num_workers=train_num_workers, collate_fn=collate_fn, pin_memory=True)
 
     dataset_val = GreatBarrierReefDataset(root=root,
-                                          annotation_file='val.csv',
+                                          annotation_file=val_annotations_file,
                                           transforms=get_transform(False))
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val, batch_size=val_batch_size, shuffle=False,
@@ -144,6 +148,8 @@ def train_one_step(model: torch.nn.Module, images: torch.FloatTensor,
 
 def train_and_evaluate(model: torch.nn.Module,
                        root: str,
+                       train_annotations_file: str,
+                       val_annotations_file: str,
                        num_epochs: int,
                        checkpoint_path: str,
                        train_batch_size: int = 32,
@@ -169,6 +175,8 @@ def train_and_evaluate(model: torch.nn.Module,
     Args:
         model: PyTorch model
         root: path to the root folder of the images and annotations
+        train_annotations_file: path to the annotation file used for training (from root)
+        val_annotations_file: path to the annotation file used for validations (from root)
         num_epochs: number of epochs for which the model should be trained
         checkpoint_path: path where the checkpoints and tensorboard files should
             be saved to
@@ -191,8 +199,13 @@ def train_and_evaluate(model: torch.nn.Module,
     device = torch.device(
         'cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    data_loader_train, data_loader_val = get_data_loaders(root, train_batch_size, train_num_workers,
-                                                          val_batch_size, val_num_workers)
+    data_loader_train, data_loader_val = get_data_loaders(root,
+                                                          train_annotations_file,
+                                                          val_annotations_file,
+                                                          train_batch_size,
+                                                          train_num_workers,
+                                                          val_batch_size,
+                                                          val_num_workers)
 
     model.to(device)
 
