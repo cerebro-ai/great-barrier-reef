@@ -124,11 +124,9 @@ def get_transform(train: bool = True,
     """
     if train:
         transforms = [
-            A.RandomSizedBBoxSafeCrop(height=512, width=512, p=1),
             A.HorizontalFlip(p=0.5),
-            A.MotionBlur(),
-            A.Perspective(),
-            A.RandomBrightnessContrast(p=0.5),
+            A.Rotate(limit=30, p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
         ]
     else:
         transforms = []

@@ -10,7 +10,7 @@ from data import GreatBarrierReefDataset, get_transform, collate_fn
 
 def test_transformation():
     path = Path(__file__).parent.parent.joinpath("dataset").absolute()
-    gbr_dataset = GreatBarrierReefDataset(root=str(path), annotation_file=str("train_mini.csv"),
+    gbr_dataset = GreatBarrierReefDataset(root=str(path), annotation_file=str("sub_sequence_split/val.csv"),
                                           transforms=get_transform(True))
     data_loader_train = torch.utils.data.DataLoader(
         gbr_dataset, batch_size=4, shuffle=True,

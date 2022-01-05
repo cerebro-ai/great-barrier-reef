@@ -22,9 +22,12 @@ if __name__ == '__main__':
     date_time = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
     run: Run = wandb.init(entity="cerebro-ai",
                           project="great-barrier-reef",
-                          notes=f"({date_time})",
+                          notes=f"{date_time}",
                           config=params
                           )
+
+    run.summary["train_file"] = config["local"]["train_annotations_file"]
+    run.summary["val_file"] = config["local"]["val_annotations_file"]
 
     # get the checkpoint path from the run name and create the folder
     # fallback to date_time if wandb runs in offline mode
