@@ -46,8 +46,9 @@ if __name__ == '__main__':
                                     image_mean=[0.2652, 0.5724, 0.6195],
                                     image_std=[0.2155, 0.1917, 0.1979])
 
-    model.log_name = "fasterrcnn_resnet50_fpn"
     wandb.watch(model, log_freq=100)
+
+    run.summary["model_name"] = "fasterrcnn_resnet50_fpn"
 
     train_and_evaluate(
         model=model,
