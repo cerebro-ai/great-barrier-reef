@@ -11,6 +11,7 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from wandb.sdk.wandb_run import Run
 
 from train import train_and_evaluate
+from models.faster_rcnn import fasterrcnn_fpn
 
 if __name__ == '__main__':
     # load config
@@ -41,10 +42,11 @@ if __name__ == '__main__':
         if existing_checkpoint \
         else None
 
-    model = fasterrcnn_resnet50_fpn(num_classes=2,
-                                    trainable_backbone_layers=5,
-                                    image_mean=[0.2652, 0.5724, 0.6195],
-                                    image_std=[0.2155, 0.1917, 0.1979])
+    model = fasterrcnn_fpn('resnet50', min_size_train=720, max_size_train=1280)
+    # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
+    # wide_resnet101_2: train 512x512 -> batch size 13, val 720x1280 -> batch size 16
+    # efficientnet_b0: train 512x512 -> batch size 8, val 720x1280 -> batch size 6
+    # efficientnet_b7: train 512x512 -> batch size 2, val 720x1280 -> batch size 1
 
     wandb.watch(model, log_freq=100)
 
