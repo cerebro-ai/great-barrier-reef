@@ -13,6 +13,12 @@ from wandb.sdk.wandb_run import Run
 from train import train_and_evaluate
 from models.faster_rcnn import fasterrcnn_fpn
 
+
+def get_latest_checkpoint(checkpoints_dir: Path):
+    epoch = sorted([int(x.stem.split("_")[-1]) for x in checkpoints_dir.iterdir()])[-1]
+    return checkpoints_dir.joinpath(f"Epoch_{epoch}.pth")
+
+
 if __name__ == '__main__':
     # load config
     with Path("./config.yaml").open("r") as f:
@@ -24,7 +30,8 @@ if __name__ == '__main__':
     run: Run = wandb.init(entity="cerebro-ai",
                           project="great-barrier-reef",
                           notes=f"{date_time}",
-                          config=params
+                          config=params,
+                          resume="auto"
                           )
 
     run.summary["train_file"] = config["local"]["train_annotations_file"]
@@ -32,15 +39,18 @@ if __name__ == '__main__':
 
     # get the checkpoint path from the run name and create the folder
     # fallback to date_time if wandb runs in offline mode
-    checkpoint_root = Path(config["local"]["checkpoint_root"])
-    checkpoint_root = checkpoint_root.joinpath(run.name if run.name else date_time)
+    # Path(checkpoints/eager-sunset-100)
+    checkpoint_root = Path(config["local"]["checkpoint_root"]).joinpath(run.name if run.name else date_time)
     checkpoint_root.mkdir(exist_ok=True, parents=True)
 
     # if a checkpoint is given construct it from the checkpoint directory
-    existing_checkpoint = config["local"].get("resume_checkpoint", None)
-    existing_checkpoint_path = str(checkpoint_root.parent.joinpath(existing_checkpoint)) \
-        if existing_checkpoint \
-        else None
+    if run.resumed:
+        existing_checkpoint_path = get_latest_checkpoint(checkpoint_root)
+    else:
+        existing_checkpoint = config["local"].get("resume_checkpoint", None)
+        existing_checkpoint_path = str(checkpoint_root.parent.joinpath(existing_checkpoint)) \
+            if existing_checkpoint \
+            else None
 
     model = fasterrcnn_fpn('resnet50', min_size_train=720, max_size_train=1280)
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
