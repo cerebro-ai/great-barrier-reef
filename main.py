@@ -30,12 +30,14 @@ if __name__ == '__main__':
     run: Run = wandb.init(entity="cerebro-ai",
                           project="great-barrier-reef",
                           notes=f"{date_time}",
-                          config=params,
-                          resume="auto"
+                          config=params
                           )
 
     run.summary["train_file"] = config["local"]["train_annotations_file"]
     run.summary["val_file"] = config["local"]["val_annotations_file"]
+
+    model_name = config["params"]["model_name"]
+    run.summary["model_name"] = model_name
 
     # get the checkpoint path from the run name and create the folder
     # fallback to date_time if wandb runs in offline mode
@@ -52,15 +54,13 @@ if __name__ == '__main__':
             if existing_checkpoint \
             else None
 
-    model = fasterrcnn_fpn('resnet50', min_size_train=720, max_size_train=1280)
+    model = fasterrcnn_fpn(model_name, min_size_train=720, max_size_train=1280)
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
     # wide_resnet101_2: train 512x512 -> batch size 13, val 720x1280 -> batch size 16
     # efficientnet_b0: train 512x512 -> batch size 8, val 720x1280 -> batch size 6
     # efficientnet_b7: train 512x512 -> batch size 2, val 720x1280 -> batch size 1
 
     wandb.watch(model, log_freq=100)
-
-    run.summary["model_name"] = "fasterrcnn_resnet50_fpn"
 
     train_and_evaluate(
         model=model,

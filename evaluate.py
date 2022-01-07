@@ -14,7 +14,7 @@ from wandb.sdk.data_types import WBValue
 from data import GreatBarrierReefDataset, collate_fn, get_transform
 from dataset.val_uploaded import image_ids_to_upload, img_id
 from tensorboard_utils import *
-from wandb_utils import VideoBuffer, create_box_data
+from wandb_utils import VideoBuffer, MultipleVideoBuffer, create_box_data
 
 
 def reduce_dict(dict_list: List[Dict[str, float]],
@@ -124,7 +124,7 @@ def evaluate(model: torch.nn.Module,
              data_loader: torch.utils.data.DataLoader,
              device: torch.device) -> Tuple[Dict[str, float],
                                             Dict[int, Dict],
-                                            List[wandb.Video],
+                                            Dict[str, List[wandb.Video]],
                                             Dict[str, WBValue]
 ]:
     """ Evaluates the model on the data_loader and device and returns the losses,
@@ -148,7 +148,7 @@ def evaluate(model: torch.nn.Module,
     img_ids_to_upload = [img_id(x) for x in image_ids_to_upload]
 
     images_to_upload = {}
-    video_buffer = VideoBuffer()
+    multiple_video_buffer = MultipleVideoBuffer()
 
     for i, (images, targets) in enumerate(data_loader):
         images = list(img.to(device) for img in images)
@@ -173,8 +173,9 @@ def evaluate(model: torch.nn.Module,
             # draw image with boxes for video
             img_with_boxes = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")
             img_with_boxes = draw_bounding_boxes(img_with_boxes, output["boxes"], width=2)
-            # append to video buffer
-            video_buffer.append(img_with_boxes.numpy())
+
+            # append to video buffer for the respective sub_sequence
+            multiple_video_buffer.append(target["sub_sequence_id"].item(), img_with_boxes.numpy())
 
             evaluator.update(predictions=output['boxes'],
                              scores=output['scores'],
@@ -195,11 +196,11 @@ def evaluate(model: torch.nn.Module,
     else:
         wandb_objects = {}
 
-    videos = video_buffer.export()
-    video_buffer.reset()
+    videos_dict = multiple_video_buffer.export()
+    multiple_video_buffer.reset()
 
     print(json.dumps(val_metrics, indent=4))
-    return val_metrics, images_to_upload, videos, wandb_objects
+    return val_metrics, images_to_upload, videos_dict, wandb_objects
 
 
 def evaluate_and_plot(model: torch.nn.Module,
@@ -207,7 +208,12 @@ def evaluate_and_plot(model: torch.nn.Module,
                       device: torch.device,
                       epoch: int = 0,
                       ):
-    val_metrics, images_to_upload, videos, wandb_objects = evaluate(model, data_loader, device=device)
+    val_metrics, images_to_upload, videos_dict, wandb_objects = evaluate(model, data_loader, device=device)
+
+    videos_flattened = []
+    for key, videos in videos_dict.items():
+        for i, video in enumerate(videos):
+            videos_flattened.append((f"{key}_{i}", video))
 
     # create log dict with images and videos
     wandb_log_dict = \
@@ -224,7 +230,7 @@ def evaluate_and_plot(model: torch.nn.Module,
                     }
                 }) for image_id, img_dict in images_to_upload.items()},
             **{  # videos
-                f"video_{i}": video for i, video in enumerate(videos)
+                key: video for key, video in videos_flattened
             },
             # pr-curve and other plots
             **wandb_objects

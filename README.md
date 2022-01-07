@@ -54,6 +54,7 @@ local:
   resume_checkpoint: "2021-12-17T23_32_18/best_model.pth"
 
 params:
+  model_name: resnet50
   num_epochs: 100
   eval_every_n_epochs: 1
   save_every_n_epochs: 5

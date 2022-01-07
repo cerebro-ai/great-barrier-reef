@@ -1,7 +1,33 @@
+from typing import Dict
+
 import numpy as np
 import torch
 
 import wandb
+
+
+class MultipleVideoBuffer:
+    """Wrapper around a dictionary of video buffers"""
+
+    def __init__(self, max_frames=600, fps=18):
+        self.max_frames = max_frames
+        self.fps = fps
+        self.video_buffers: Dict[str, VideoBuffer] = {}
+
+    def append(self, key: str, value: np.ndarray):
+        if key not in self.video_buffers.keys():
+            self.video_buffers[key] = VideoBuffer(max_frames=self.max_frames, fps=self.fps)
+        self.video_buffers[key].append(value)
+
+    def reset(self):
+        for buffer in self.video_buffers.values():
+            buffer.reset()
+
+    def export(self):
+        videos = {}
+        for key, buffer in self.video_buffers.items():
+            videos[key] = buffer.export()
+        return videos
 
 
 class VideoBuffer:

@@ -73,7 +73,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         image_path = join(self.image_root, f'video_{annotations.video_id}', f'{annotations.video_frame}.jpg')
         image = np.asarray(Image.open(image_path))
 
-        meta_keys = ['video_id', 'sequence', 'video_frame', 'sequence_frame']
+        meta_keys = ['video_id', 'sequence', 'video_frame', 'sequence_frame', 'sub_sequence_id']
 
         # needed for pycocotools
         image_id = f'{annotations.video_id}{annotations.video_frame:05d}'
@@ -81,8 +81,11 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         iscrowd = torch.zeros(boxes.shape[0], dtype=torch.int64)
         labels = np.zeros(boxes.shape[0])
 
-        target = {'boxes': boxes, 'labels': torch.ones(boxes.shape[0], dtype=torch.int64),
-                  'image_id': torch.as_tensor(int(image_id)), 'area': area, 'iscrowd': iscrowd,
+        target = {'boxes': boxes,
+                  'labels': torch.ones(boxes.shape[0], dtype=torch.int64),
+                  'image_id': torch.as_tensor(int(image_id)),
+                  'area': area,
+                  'iscrowd': iscrowd,
                   **{key: torch.as_tensor(value) for key, value in annotations[meta_keys].items()}}
 
         if self.transforms is not None:
