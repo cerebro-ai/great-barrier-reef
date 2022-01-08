@@ -4,7 +4,7 @@ from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from torchvision.ops import MultiScaleRoIAlign
 
-from backbones.efficientnet import efficientnet_fpn, efficientnet_width_depth_dict
+from gbr.backbones.efficientnet import efficientnet_fpn, efficientnet_width_depth_dict
 
 fasterrcnn_params = dict(
     image_mean=[0.2652, 0.5724, 0.6195],

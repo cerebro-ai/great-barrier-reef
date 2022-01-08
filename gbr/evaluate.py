@@ -11,10 +11,10 @@ from torchvision.ops import box_iou
 from torchvision.utils import draw_bounding_boxes
 from wandb.sdk.data_types import WBValue
 
-from data import GreatBarrierReefDataset, collate_fn, get_transform
+from gbr.data import GreatBarrierReefDataset, collate_fn, get_transform
 from dataset.val_uploaded import image_ids_to_upload, img_id
-from tensorboard_utils import *
-from wandb_utils import VideoBuffer, MultipleVideoBuffer, create_box_data
+from utils.tensorboard_utils import *
+from utils.wandb_utils import MultipleVideoBuffer, create_box_data
 
 
 def reduce_dict(dict_list: List[Dict[str, float]],

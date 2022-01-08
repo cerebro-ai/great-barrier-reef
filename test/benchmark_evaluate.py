@@ -2,7 +2,7 @@ import torch
 from torchvision.ops import box_iou
 import torch.utils.benchmark as benchmark
 
-from evaluate import get_matched_indices
+from gbr.evaluate import get_matched_indices
 
 
 def generate_boxes(num_boxes,

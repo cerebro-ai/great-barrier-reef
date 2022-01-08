@@ -5,7 +5,7 @@ import torch
 from PIL import ImageDraw
 from torchvision.utils import draw_bounding_boxes
 
-from data import GreatBarrierReefDataset, get_transform, collate_fn
+from gbr.data import GreatBarrierReefDataset, get_transform, collate_fn
 
 
 def test_transformation():

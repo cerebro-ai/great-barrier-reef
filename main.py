@@ -7,11 +7,10 @@ from datetime import datetime
 import wandb
 import yaml
 
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from wandb.sdk.wandb_run import Run
 
-from train import train_and_evaluate
-from models.faster_rcnn import fasterrcnn_fpn
+from gbr.train import train_and_evaluate
+from gbr.models.faster_rcnn import fasterrcnn_fpn
 
 
 def get_latest_checkpoint(checkpoints_dir: Path):
