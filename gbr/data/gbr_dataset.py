@@ -29,7 +29,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
 
     def __init__(self,
                  root: str,
-                 annotation_file: str,
+                 annotation_path: str,
                  transforms=None):
         """ Inits the great barrier reef dataset.
 
@@ -45,7 +45,6 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                 tensor and a dict with the same keys. (optional)
         """
         self.image_root = join(root, 'train_images')
-        annotation_path = join(root, annotation_file)
 
         self.annotation_file = pd.read_csv(annotation_path)
         self.annotation_file[self.ANNOTATIONS_COLUMN] = self.annotation_file[self.ANNOTATIONS_COLUMN].apply(eval)

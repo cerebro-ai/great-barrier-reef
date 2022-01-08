@@ -40,7 +40,7 @@ def get_data_loaders(root: str,
     """
 
     dataset = GreatBarrierReefDataset(root=root,
-                                      annotation_file=train_annotations_file,
+                                      annotation_path=train_annotations_file,
                                       transforms=get_transform(True))
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -48,7 +48,7 @@ def get_data_loaders(root: str,
         num_workers=train_num_workers, collate_fn=collate_fn, pin_memory=True)
 
     dataset_val = GreatBarrierReefDataset(root=root,
-                                          annotation_file=val_annotations_file,
+                                          annotation_path=val_annotations_file,
                                           transforms=get_transform(False))
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val, batch_size=val_batch_size, shuffle=False,
