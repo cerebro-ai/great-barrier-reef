@@ -1,5 +1,6 @@
 from torchvision.models.detection.backbone_utils import BackboneWithFPN
 from torchvision.models.efficientnet import _efficientnet_conf
+from torchvision.models.efficientnet import *
 
 return_indices = [1, 2, 3, 5, 7, 8]
 efficientnet_width_depth_dict = {
