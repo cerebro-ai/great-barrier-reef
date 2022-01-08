@@ -7,7 +7,7 @@ setuptools.setup(
     description="Code for the kaggle challenge 'Great Barrier Reef'",
     packages=setuptools.find_packages(include=['gbr', 'gbr.*']),
     install_requires=[
-        "torch==1.10",
+        "torch~=1.10",
         "torchvision~=0.11.1",
         "pandas",
         "pillow~=8.4.0",
