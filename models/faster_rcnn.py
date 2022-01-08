@@ -56,6 +56,7 @@ def fasterrcnn_resnet_fpn(name,
                           featmap_names=('0', '1', '2', '3'),
                           sizes=((8, 16, 32), (16, 32, 64), (16, 32, 64), (32, 64, 128), (64, 128, 256)),
                           aspect_ratios=((.5, 1.0, 2.),) * 5,
+                          pretrained_backbone=True,
                           **fasterrcnn_kwargs):
     """
 
@@ -64,7 +65,7 @@ def fasterrcnn_resnet_fpn(name,
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
            'wide_resnet50_2', 'wide_resnet101_2'
     """
-    backbone = resnet_fpn_backbone(name, True, trainable_layers=trainable_layers)
+    backbone = resnet_fpn_backbone(name, pretrained_backbone, trainable_layers=trainable_layers)
     return fasterrcnn(backbone, featmap_names, sizes, aspect_ratios, **fasterrcnn_kwargs)
 
 
