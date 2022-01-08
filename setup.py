@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="cerebro-gbr",
+    name="gbr",
     version="0.0.1",
     author="Cerebro AI",
     description="Code for the kaggle challenge 'Great Barrier Reef'",
