@@ -10,9 +10,9 @@ from typing import Tuple, Optional, List
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-from data.gbr_dataset import GreatBarrierReefDataset, collate_fn, get_transform
-from evaluate import evaluate_and_plot
-from utils.tensorboard_utils import *
+from gbr.data.gbr_dataset import GreatBarrierReefDataset, collate_fn, get_transform
+from gbr.evaluate import evaluate_and_plot
+from gbr.utils.tensorboard_utils import *
 
 
 def get_data_loaders(root: str,

@@ -13,8 +13,8 @@ from wandb.sdk.data_types import WBValue
 
 from gbr.data import GreatBarrierReefDataset, collate_fn, get_transform
 from dataset.val_uploaded import image_ids_to_upload, img_id
-from utils.tensorboard_utils import *
-from utils.wandb_utils import MultipleVideoBuffer, create_box_data
+from gbr.utils.tensorboard_utils import *
+from gbr.utils.wandb_utils import MultipleVideoBuffer, create_box_data
 
 
 def reduce_dict(dict_list: List[Dict[str, float]],
