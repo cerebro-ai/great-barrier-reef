@@ -5,7 +5,7 @@ setuptools.setup(
     version="0.0.1",
     author="Cerebro AI",
     description="Code for the kaggle challenge 'Great Barrier Reef'",
-    packages=["gbr"],
+    packages=setuptools.find_packages(include=['gbr', 'gbr.*']),
     install_requires=[
         "torch==1.10",
         "torchvision~=0.11.1",
