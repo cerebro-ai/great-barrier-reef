@@ -16,6 +16,7 @@ setuptools.setup(
         "wandb",
         "moviepy",
         "imageio",
-        "albumentations"
+        "albumentations",
+        "randomname"
     ]
 )

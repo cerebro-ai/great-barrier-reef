@@ -6,6 +6,7 @@ from datetime import datetime
 
 import wandb
 import yaml
+import randomname
 
 from wandb.sdk.wandb_run import Run
 
@@ -26,8 +27,11 @@ if __name__ == '__main__':
     params = config["params"]
 
     date_time = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
+    model_name = config["params"]["model_name"]
+    run_name = randomname.get_name() + "-" + model_name
     run: Run = wandb.init(entity="cerebro-ai",
                           project="great-barrier-reef",
+                          name=run_name,
                           notes=f"{date_time}",
                           config=params
                           )
@@ -35,7 +39,6 @@ if __name__ == '__main__':
     run.summary["train_file"] = config["local"]["train_annotations"]
     run.summary["val_file"] = config["local"]["val_annotations"]
 
-    model_name = config["params"]["model_name"]
     run.summary["model_name"] = model_name
 
     # get the checkpoint path from the run name and create the folder
