@@ -1,0 +1,3 @@
+video_id,sequence,video_frame,sequence_frame,image_id,annotations,clamped_annotations,sub_sequence_id,n_annotations,empty_sub_sequence,is_train
+0,45518,1539,666,0-1539,"[{'x': 250, 'y': 364, 'width': 34, 'height': 26}]","[{'x': 250, 'y': 364, 'width': 34, 'height': 26}]",45518013,1,False,False
+0,45518,1540,667,0-1540,"[{'x': 242, 'y': 374, 'width': 32, 'height': 24}]","[{'x': 242, 'y': 374, 'width': 32, 'height': 24}]",45518013,1,False,False
