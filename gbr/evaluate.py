@@ -196,8 +196,12 @@ def evaluate(model: torch.nn.Module,
     else:
         wandb_objects = {}
 
-    videos_dict = multiple_video_buffer.export()
-    multiple_video_buffer.reset()
+    try:
+        videos_dict = multiple_video_buffer.export()
+        multiple_video_buffer.reset()
+    except TypeError as e:
+        print(e)
+        videos_dict = {}
 
     print(json.dumps(val_metrics, indent=4))
     return val_metrics, images_to_upload, videos_dict, wandb_objects
