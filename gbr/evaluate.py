@@ -205,8 +205,7 @@ def evaluate(model: torch.nn.Module,
 
 def evaluate_and_plot(model: torch.nn.Module,
                       data_loader: torch.utils.data.DataLoader,
-                      device: torch.device,
-                      epoch: int = 0,
+                      device: torch.device
                       ):
     val_metrics, images_to_upload, videos_dict, wandb_objects = evaluate(model, data_loader, device=device)
 
