@@ -127,8 +127,6 @@ def get_transform(train: bool = True,
     if train:
         transforms = [
             A.HorizontalFlip(p=0.5),
-            A.Rotate(limit=30, p=0.5),
-            A.RandomBrightnessContrast(p=0.2),
         ]
     else:
         transforms = []
