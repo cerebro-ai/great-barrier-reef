@@ -15,9 +15,12 @@ class MultipleVideoBuffer:
         self.video_buffers: Dict[str, VideoBuffer] = {}
 
     def append(self, key: str, value: np.ndarray):
-        if key not in self.video_buffers.keys():
-            self.video_buffers[key] = VideoBuffer(max_frames=self.max_frames, fps=self.fps)
-        self.video_buffers[key].append(value)
+        try:
+            if key not in self.video_buffers.keys():
+                self.video_buffers[key] = VideoBuffer(max_frames=self.max_frames, fps=self.fps)
+            self.video_buffers[key].append(value)
+        except Exception:
+            pass
 
     def reset(self):
         for buffer in self.video_buffers.values():
@@ -25,9 +28,12 @@ class MultipleVideoBuffer:
 
     def export(self):
         videos = {}
-        for key, buffer in self.video_buffers.items():
-            videos[key] = buffer.export()
-        return videos
+        try:
+            for key, buffer in self.video_buffers.items():
+                videos[key] = buffer.export()
+            return videos
+        except:
+            return {}
 
 
 class VideoBuffer:
