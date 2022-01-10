@@ -211,7 +211,7 @@ def train_and_evaluate(model: torch.nn.Module,
 
     params = [p for p in model.parameters() if p.requires_grad]
 
-    optimizer = torch.optim.SGD(params, lr=learning_rate, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.NAdam(params, lr=learning_rate)
     total_steps = len(data_loader_train)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
     if existing_checkpoint_path:
