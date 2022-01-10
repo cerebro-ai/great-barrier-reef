@@ -175,7 +175,10 @@ def evaluate(model: torch.nn.Module,
             img_with_boxes = draw_bounding_boxes(img_with_boxes, output["boxes"], width=2)
 
             # append to video buffer for the respective sequence
-            multiple_video_buffer.append(target["sequence"].item(), img_with_boxes.numpy())
+            try:
+                multiple_video_buffer.append(target["sequence"].item(), img_with_boxes.numpy())
+            except Exception:
+                pass
 
             evaluator.update(predictions=output['boxes'],
                              scores=output['scores'],
