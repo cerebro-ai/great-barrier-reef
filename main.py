@@ -36,8 +36,8 @@ if __name__ == '__main__':
                           config=params
                           )
 
-    run.summary["train_file"] = config["local"]["train_annotations"]
-    run.summary["val_file"] = config["local"]["val_annotations"]
+    run.summary["train_file"] = config["local"]["train_annotations"].split("/")[-2:]
+    run.summary["val_file"] = config["local"]["val_annotations"].split("/")[-2:]
 
     run.summary["model_name"] = model_name
 
