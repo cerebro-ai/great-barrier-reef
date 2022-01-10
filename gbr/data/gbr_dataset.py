@@ -72,7 +72,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         image_path = join(self.image_root, f'video_{annotations.video_id}', f'{annotations.video_frame}.jpg')
         image = np.asarray(Image.open(image_path))
 
-        meta_keys = ['video_id', 'sequence', 'video_frame', 'sequence_frame', 'sub_sequence_id']
+        meta_keys = ['video_id', 'sequence', 'video_frame', 'sequence_frame']
 
         # needed for pycocotools
         image_id = f'{annotations.video_id}{annotations.video_frame:05d}'
