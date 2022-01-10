@@ -149,6 +149,7 @@ def evaluate(model: torch.nn.Module,
 
     images_to_upload = {}
     multiple_video_buffer = MultipleVideoBuffer()
+    skip_videos = False
 
     for i, (images, targets) in enumerate(data_loader):
         images = list(img.to(device) for img in images)
@@ -176,8 +177,12 @@ def evaluate(model: torch.nn.Module,
 
             # append to video buffer for the respective sequence
             try:
-                multiple_video_buffer.append(target["sequence"].item(), img_with_boxes.numpy())
-            except Exception:
+                if not skip_videos:
+                    multiple_video_buffer.append(target["sequence"].item(), img_with_boxes.numpy())
+            except Exception as e:
+                skip_videos = True
+                print(e)
+                print("will skip videos for now...")
                 pass
 
             evaluator.update(predictions=output['boxes'],
@@ -200,8 +205,11 @@ def evaluate(model: torch.nn.Module,
         wandb_objects = {}
 
     try:
-        videos_dict = multiple_video_buffer.export()
-        multiple_video_buffer.reset()
+        if not skip_videos:
+            videos_dict = multiple_video_buffer.export()
+            multiple_video_buffer.reset()
+        else:
+            videos_dict = {}
     except TypeError as e:
         print(e)
         videos_dict = {}
