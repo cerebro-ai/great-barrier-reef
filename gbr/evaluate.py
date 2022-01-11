@@ -151,31 +151,50 @@ def evaluate(model: torch.nn.Module,
     multiple_video_buffer = MultipleVideoBuffer()
     skip_videos = False
 
+    prediction_batches = []
+
+    # first iteration: compute predictions and metrics
     for i, (images, targets) in enumerate(data_loader):
         images = list(img.to(device) for img in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        # torch.cuda.synchronize()
-        outputs = model(images, targets)
+        predictions = model(images, targets)
 
-        for image, output, target in zip(images, outputs, targets):
+        for image, prediction, target in zip(images, predictions, targets):
+            evaluator.update(predictions=prediction['boxes'],
+                             scores=prediction['scores'],
+                             annotations=target['boxes'])
+
+        prediction_batches.append(predictions)
+
+    val_metrics, pr_curve = evaluator.accumulate()
+
+    # second iteration: create videos
+    for i, (images, targets) in enumerate(data_loader):
+        images = list(img.to(device) for img in images)
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+        predictions = prediction_batches[i]
+
+        optimal_threshold = val_metrics.get("optimal_threshold", 0)
+
+        for image, prediction, target in zip(images, predictions, targets):
             image_id = target["image_id"].item()
-
-            # check if it is an image which we want to upload
             image = (image * 255).to(device=torch.device('cpu'), dtype=torch.uint8)
 
+            # selected images to be uploaded with annotations
             if image_id in img_ids_to_upload:
                 images_to_upload[image_id] = {
                     "img": torch.permute(image, (1, 2, 0)).numpy(),  # permute such that (HxWxC)
                     "ground_truth": create_box_data(target, mode="ground_truth"),
-                    "prediction": create_box_data(output, mode="prediction")
+                    "prediction": create_box_data(prediction, mode="prediction")
                 }
 
-            # draw image with boxes for video
-            img_with_boxes = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")
-            img_with_boxes = draw_bounding_boxes(img_with_boxes, output["boxes"], width=2)
+            # annotate the image with annotations
+            high_conf_boxes = target["boxes"][target["scores"] >= optimal_threshold]
+            img_with_boxes = draw_bounding_boxes(image, high_conf_boxes, width=3, colors="red")
+            img_with_boxes = draw_bounding_boxes(img_with_boxes, prediction["boxes"], width=2)
 
-            # append to video buffer for the respective sequence
+            # write image into corresponding video buffer
             try:
                 if not skip_videos:
                     multiple_video_buffer.append(target["sequence"].item(), img_with_boxes.numpy())
@@ -185,13 +204,7 @@ def evaluate(model: torch.nn.Module,
                 print("will skip videos for now...")
                 pass
 
-            evaluator.update(predictions=output['boxes'],
-                             scores=output['scores'],
-                             annotations=target['boxes'])
-
-    # accumulate predictions from all images
-    val_metrics, pr_curve = evaluator.accumulate()
-
+    # create pr curve for wandb
     if val_metrics:
         data = [[x, y] for x, y in zip(*pr_curve)]
         table = wandb.Table(columns=["recall", "precision"], data=data)
@@ -204,6 +217,7 @@ def evaluate(model: torch.nn.Module,
     else:
         wandb_objects = {}
 
+    # export videos
     try:
         if not skip_videos:
             videos_dict = multiple_video_buffer.export()
