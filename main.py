@@ -36,8 +36,9 @@ if __name__ == '__main__':
                           config=params
                           )
 
-    run.summary["train_file"] = config["local"]["train_annotations"].split("/")[-2:]
-    run.summary["val_file"] = config["local"]["val_annotations"].split("/")[-2:]
+    # only log the two right most parts of the file paths
+    run.summary["train_file"] = "/".join(config["local"]["train_annotations"].split("/")[-2:])
+    run.summary["val_file"] = "/".join(config["local"]["val_annotations"].split("/")[-2:])
 
     run.summary["model_name"] = model_name
 
