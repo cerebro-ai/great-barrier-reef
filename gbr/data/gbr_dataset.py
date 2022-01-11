@@ -134,7 +134,7 @@ class RandomCropAroundRandomBox(DualTransform):
         # pad the img
         interpolation = cv2.INTER_LINEAR
         h, w, _ = img.shape
-        img = F.crop_and_pad(img, None, self.pad_params, 0, None, None, interpolation, cv2.BORDER_CONSTANT, False)
+        img = F.crop_and_pad(img, None, self.pad_params, None, None, None, interpolation, cv2.BORDER_DEFAULT, False)
         h_b, w_b, _ = img.shape
         # account for the padding
         x_min = int((self.width + x_min * w).round().item())
