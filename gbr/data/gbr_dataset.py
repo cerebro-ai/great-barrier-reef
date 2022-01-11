@@ -3,15 +3,19 @@ Dataset for the great barrier reef kaggle challenge
 (https://www.kaggle.com/c/tensorflow-great-barrier-reef/data)
 """
 import logging
+import random
 from os.path import join
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Any, List
 
 import albumentations as A
+import cv2
 import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
+from albumentations import DualTransform
 from albumentations.pytorch import transforms as At
+from albumentations.augmentations.crops import functional as F
 
 
 class GreatBarrierReefDataset(torch.utils.data.Dataset):
@@ -110,6 +114,91 @@ def collate_fn(batch):
     return torch.stack(c[0]), c[1]
 
 
+class RandomCropAroundRandomBox(DualTransform):
+    """Choose a random crop such that it contains at least on bounding box.
+
+    Parts outside the image are extrapolated with 'black' are by mirroring the image
+
+    """
+
+    def __init__(self, height, width, pad_mode=cv2.BORDER_DEFAULT, always_apply=False, p=1.0):
+        super().__init__(always_apply=always_apply, p=p)
+        self.height = height
+        self.width = width
+        self.pad_mode = pad_mode
+
+        # top bottom left right
+        self.pad_params = [self.height, self.height, self.width, self.width]
+
+    def apply(self, img, x_min, x_max, y_min, y_max, **params):
+        # pad the img
+        interpolation = cv2.INTER_LINEAR
+        h, w, _ = img.shape
+        img = F.crop_and_pad(img, None, self.pad_params, 0, None, None, interpolation, cv2.BORDER_CONSTANT, False)
+        h_b, w_b, _ = img.shape
+        # account for the padding
+        x_min = int((self.width + x_min * w).round().item())
+        x_max = int((self.width + x_max * w).round().item())
+        y_min = int((self.height + y_min * h).round().item())
+        y_max = int((self.height + y_max * h).round().item())
+
+        return F.crop(img, x_min, y_min, x_max, y_max)
+
+    def apply_to_bbox(self, bbox, x_min, x_max, y_min, y_max, rows, cols, **params):
+        # img_h, img_w, _ = params["image"].shape
+        result_rows = rows + 2 * self.pad_params[0]
+        result_cols = cols + 2 * self.pad_params[2]
+        bbox = F.crop_and_pad_bbox(bbox,
+                                   crop_params=None,
+                                   pad_params=self.pad_params,
+                                   rows=rows,
+                                   cols=cols,
+                                   result_rows=result_rows,
+                                   result_cols=result_cols,
+                                   keep_size=True)
+        x_min = int(((self.width + x_min * cols)).round().item())
+        x_max = int(((self.width + x_max * cols)).round().item())
+        y_min = int(((self.height + y_min * rows)).round().item())
+        y_max = int(((self.height + y_max * rows)).round().item())
+        return F.bbox_crop(bbox, x_min, y_min, x_max, y_max, result_rows, result_cols)
+
+    def get_params_dependent_on_targets(self, params: Dict[str, Any]) -> Dict[str, int]:
+        n_boxes = len(params["bboxes"])
+        if n_boxes == 0:
+            # no boxes return random crop inside image
+            pass
+            return {}
+        if n_boxes == 1:
+            bbox = params["bboxes"][0]
+        else:
+            # choose random box
+            bbox = random.choice(params["bboxes"])
+        img_h, img_w, _ = params["image"].shape
+        min_x = bbox[2] - (self.width / img_w)
+        max_x = bbox[0]
+
+        min_y = bbox[3] - (self.height / img_h)
+        max_y = bbox[1]
+
+        crop_x = random.uniform(min_x, max_x)
+        crop_y = random.uniform(min_y, max_y)
+
+        return {"x_min": crop_x,
+                "x_max": crop_x + self.width / img_w,
+                "y_min": crop_y,
+                "y_max": crop_y + self.height / img_h,
+                "rows": img_h,
+                "cols": img_w
+                }
+
+    @property
+    def targets_as_params(self) -> List[str]:
+        return ["image", "bboxes"]
+
+    def get_transform_init_args_names(self) -> Tuple[str, ...]:
+        return "height", "width"
+
+
 def get_transform(train: bool = True,
                   size: Tuple[int, int] = (512, 512)) -> A.Compose:
     """ Returns the transforms for the images and targets.
@@ -126,9 +215,14 @@ def get_transform(train: bool = True,
     """
     if train:
         transforms = [
+            RandomCropAroundRandomBox(230, 230),
             A.HorizontalFlip(p=0.5),
         ]
     else:
         transforms = []
     transforms.append(At.ToTensorV2())
-    return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc", label_fields=["labels"]))
+    return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc",
+                                                          label_fields=["labels"],
+                                                          min_visibility=0.3
+                                                          )
+                     )
