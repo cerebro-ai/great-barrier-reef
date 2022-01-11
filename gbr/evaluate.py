@@ -194,8 +194,8 @@ def evaluate(model: torch.nn.Module,
             img_with_boxes = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")  # ground_truth
             img_with_boxes = draw_bounding_boxes(image=img_with_boxes,
                                                  boxes=high_conf_boxes,
-                                                 labels=prediction["scores"][
-                                                     prediction["scores"] >= optimal_threshold].tolist(),
+                                                 labels=[str(x) for x in prediction["scores"][
+                                                     prediction["scores"] >= optimal_threshold].tolist()],
                                                  width=2)  # prediction
 
             # write image into corresponding video buffer
