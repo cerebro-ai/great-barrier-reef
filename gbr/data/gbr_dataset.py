@@ -214,7 +214,8 @@ def get_transform(train: bool = True,
         callable that applies the transformations on images and targets.
     """
     if train:
-        transforms = [
+        transforms = [  # TODO add center crop / center pad
+            A.Rotate(25),
             RandomCropAroundRandomBox(230, 230),
             A.HorizontalFlip(p=0.5),
         ]

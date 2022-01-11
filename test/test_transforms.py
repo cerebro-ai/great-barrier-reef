@@ -10,8 +10,8 @@ from gbr.data import GreatBarrierReefDataset, get_transform, collate_fn
 # reproducibility
 import random
 
-random.seed(46)
-torch.manual_seed(46)
+random.seed(47)
+torch.manual_seed(47)
 
 
 def test_transformation():
