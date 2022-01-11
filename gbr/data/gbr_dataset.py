@@ -164,16 +164,23 @@ class RandomCropAroundRandomBox(DualTransform):
 
     def get_params_dependent_on_targets(self, params: Dict[str, Any]) -> Dict[str, int]:
         n_boxes = len(params["bboxes"])
+        img_h, img_w, _ = params["image"].shape
         if n_boxes == 0:
             # no boxes return random crop inside image
-            pass
-            return {}
+            crop_x = random.uniform(0, (img_w - self.width)/img_w)
+            crop_y = random.uniform(0, (img_h - self.height)/img_h)
+            return {"x_min": crop_x,
+                    "x_max": crop_x + self.width / img_w,
+                    "y_min": crop_y,
+                    "y_max": crop_y + self.height / img_h,
+                    "rows": img_h,
+                    "cols": img_w
+                    }
         if n_boxes == 1:
             bbox = params["bboxes"][0]
         else:
             # choose random box
             bbox = random.choice(params["bboxes"])
-        img_h, img_w, _ = params["image"].shape
         min_x = bbox[2] - (self.width / img_w)
         max_x = bbox[0]
 
