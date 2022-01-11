@@ -216,7 +216,7 @@ def get_transform(train: bool = True,
     if train:
         transforms = [  # TODO add center crop / center pad
             A.Rotate(25),
-            RandomCropAroundRandomBox(230, 230),
+            RandomCropAroundRandomBox(256, 256),
             A.HorizontalFlip(p=0.5),
         ]
     else:
