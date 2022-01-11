@@ -192,7 +192,10 @@ def evaluate(model: torch.nn.Module,
             # annotate the image with annotations
             high_conf_boxes = prediction["boxes"][prediction["scores"] >= optimal_threshold]
             img_with_boxes = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")  # ground_truth
-            img_with_boxes = draw_bounding_boxes(img_with_boxes, high_conf_boxes, width=2)   # prediction
+            img_with_boxes = draw_bounding_boxes(image=img_with_boxes,
+                                                 boxes=high_conf_boxes,
+                                                 labels=prediction["scores"][prediction["scores"] >= optimal_threshold],
+                                                 width=2)  # prediction
 
             # write image into corresponding video buffer
             try:
