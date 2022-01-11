@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from evaluate import Evaluator
+from gbr.evaluate import Evaluator
 
 
 def test_get_metrics():

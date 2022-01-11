@@ -6,12 +6,12 @@ from datetime import datetime
 
 import wandb
 import yaml
+import randomname
 
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from wandb.sdk.wandb_run import Run
 
-from train import train_and_evaluate
-from models.faster_rcnn import fasterrcnn_fpn
+from gbr.train import train_and_evaluate
+from gbr.models.faster_rcnn import fasterrcnn_fpn
 
 
 def get_latest_checkpoint(checkpoints_dir: Path):
@@ -27,16 +27,19 @@ if __name__ == '__main__':
     params = config["params"]
 
     date_time = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
+    model_name = config["params"]["model_name"]
+    run_name = randomname.get_name() + "-" + model_name
     run: Run = wandb.init(entity="cerebro-ai",
                           project="great-barrier-reef",
+                          name=run_name,
                           notes=f"{date_time}",
                           config=params
                           )
 
-    run.summary["train_file"] = config["local"]["train_annotations_file"]
-    run.summary["val_file"] = config["local"]["val_annotations_file"]
+    # only log the two right most parts of the file paths
+    run.summary["train_file"] = "/".join(config["local"]["train_annotations"].split("/")[-2:])
+    run.summary["val_file"] = "/".join(config["local"]["val_annotations"].split("/")[-2:])
 
-    model_name = config["params"]["model_name"]
     run.summary["model_name"] = model_name
 
     # get the checkpoint path from the run name and create the folder
@@ -65,8 +68,8 @@ if __name__ == '__main__':
     train_and_evaluate(
         model=model,
         root=config["local"]["dataset_root"],
-        train_annotations_file=config["local"]["train_annotations_file"],
-        val_annotations_file=config["local"]["val_annotations_file"],
+        train_annotations_file=config["local"]["train_annotations"],
+        val_annotations_file=config["local"]["val_annotations"],
         num_epochs=params["num_epochs"],
         checkpoint_path=str(checkpoint_root),
         eval_every_n_epochs=params["eval_every_n_epochs"],
