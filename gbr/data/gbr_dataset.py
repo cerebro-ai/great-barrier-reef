@@ -156,10 +156,10 @@ class RandomCropAroundRandomBox(DualTransform):
                                    result_rows=result_rows,
                                    result_cols=result_cols,
                                    keep_size=True)
-        x_min = int(((self.width + x_min * cols)).round().item())
-        x_max = int(((self.width + x_max * cols)).round().item())
-        y_min = int(((self.height + y_min * rows)).round().item())
-        y_max = int(((self.height + y_max * rows)).round().item())
+        x_min = int(self.width + x_min * cols)
+        x_max = int(self.width + x_max * cols)
+        y_min = int(self.height + y_min * rows)
+        y_max = int(self.height + y_max * rows)
         return F.bbox_crop(bbox, x_min, y_min, x_max, y_max, result_rows, result_cols)
 
     def get_params_dependent_on_targets(self, params: Dict[str, Any]) -> Dict[str, int]:
