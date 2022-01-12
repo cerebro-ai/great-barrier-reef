@@ -221,9 +221,17 @@ def get_transform(train: bool = True,
         callable that applies the transformations on images and targets.
     """
     if train:
-        transforms = [  # TODO add center crop / center pad
-            A.Rotate(25),
+        transforms = [
+            A.Rotate(5, border_mode=cv2.BORDER_CONSTANT, p=1),
             RandomCropAroundRandomBox(256, 256),
+            A.OneOf([
+                A.Compose([  # zoom in 10 %
+                    A.CenterCrop(231, 231),
+                    A.Resize(256, 256)
+                ]),
+                A.CropAndPad(25, None),  # zoom out 10%,
+                A.RandomSizedBBoxSafeCrop(256, 256)
+            ], p=0.7),
             A.HorizontalFlip(p=0.5),
         ]
     else:

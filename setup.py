@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="gbr",
-    version="0.0.1",
+    version="0.0.2",
     author="Cerebro AI",
     description="Code for the kaggle challenge 'Great Barrier Reef'",
     packages=setuptools.find_packages(include=['gbr', 'gbr.*']),
