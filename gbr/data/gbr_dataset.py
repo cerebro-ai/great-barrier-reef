@@ -137,10 +137,10 @@ class RandomCropAroundRandomBox(DualTransform):
         img = F.crop_and_pad(img, None, self.pad_params, 0, None, None, interpolation, cv2.BORDER_CONSTANT, False)
         h_b, w_b, _ = img.shape
         # account for the padding
-        x_min = int((self.width + x_min * w).round().item())
-        x_max = int((self.width + x_max * w).round().item())
-        y_min = int((self.height + y_min * h).round().item())
-        y_max = int((self.height + y_max * h).round().item())
+        x_min = int(self.width + x_min * w)
+        x_max = int(self.width + x_max * w)
+        y_min = int(self.height + y_min * h)
+        y_max = int(self.height + y_max * h)
 
         return F.crop(img, x_min, y_min, x_max, y_max)
 
@@ -167,8 +167,8 @@ class RandomCropAroundRandomBox(DualTransform):
         img_h, img_w, _ = params["image"].shape
         if n_boxes == 0:
             # no boxes return random crop inside image
-            crop_x = random.uniform(0, (img_w - self.width)/img_w)
-            crop_y = random.uniform(0, (img_h - self.height)/img_h)
+            crop_x = random.uniform(0, (img_w - self.width) / img_w)
+            crop_y = random.uniform(0, (img_h - self.height) / img_h)
             return {"x_min": crop_x,
                     "x_max": crop_x + self.width / img_w,
                     "y_min": crop_y,
