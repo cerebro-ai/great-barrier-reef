@@ -194,7 +194,7 @@ def evaluate(model: torch.nn.Module,
             img_with_boxes = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")  # ground_truth
             img_with_boxes = draw_bounding_boxes(image=img_with_boxes,
                                                  boxes=high_conf_boxes,
-                                                 labels=[str(x.round(3)) for x in prediction["scores"][
+                                                 labels=[str(round(x, 3)) for x in prediction["scores"][
                                                      prediction["scores"] >= optimal_threshold].tolist()],
                                                  font_size=14,
                                                  width=2)  # prediction
