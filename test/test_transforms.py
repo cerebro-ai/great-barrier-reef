@@ -26,8 +26,8 @@ def test_transformation():
     images = (images * 255).to(device=torch.device('cpu'), dtype=torch.uint8)
     fig, axs = plt.subplots(3, 1, figsize=(7, 14))
     for i, image, target, ax in zip(range(images.shape[0]), images, targets, axs):
-        print(i, target["image_id"])
-        image = draw_bounding_boxes(image, target["boxes"], width=3, colors="red")
+        print(i, target["image_id"], image.shape)
+        image = draw_bounding_boxes(image, target["boxes"], width=2, colors="red")
         ax.imshow(torch.permute(image, (1, 2, 0)).numpy())
     plt.show()
 
