@@ -52,7 +52,10 @@ if __name__ == '__main__':
             if existing_checkpoint \
             else None
 
-    model = fasterrcnn_fpn(model_name, min_size_train=256, max_size_train=256)
+    model = fasterrcnn_fpn(model_name,
+                           min_size_train=256,
+                           max_size_train=256
+                           )
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
     # wide_resnet101_2: train 512x512 -> batch size 13, val 720x1280 -> batch size 16
     # efficientnet_b0: train 512x512 -> batch size 8, val 720x1280 -> batch size 6
