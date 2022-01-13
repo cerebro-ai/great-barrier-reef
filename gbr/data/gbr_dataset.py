@@ -222,7 +222,7 @@ def get_transform(train: bool = True,
     """
     if train:
         transforms = [
-            A.Rotate(5, border_mode=cv2.BORDER_CONSTANT, p=1),
+            #A.Rotate(5, border_mode=cv2.BORDER_CONSTANT, p=1),
             RandomCropAroundRandomBox(256, 256),
             A.OneOf([
                 A.Compose([  # zoom in 10 %
@@ -230,8 +230,8 @@ def get_transform(train: bool = True,
                     A.Resize(256, 256)
                 ]),
                 A.CropAndPad(25, None),  # zoom out 10%,
-                A.RandomSizedBBoxSafeCrop(256, 256)
-            ], p=0.7),
+                #A.RandomSizedBBoxSafeCrop(256, 256)
+            ], p=1),
             A.HorizontalFlip(p=0.5),
         ]
     else:
