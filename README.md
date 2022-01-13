@@ -63,4 +63,5 @@ params:
   train_num_workers: 0
   val_num_workers: 0
   learning_rate: 1.e-4
+  weight_decay: 0
 ```
