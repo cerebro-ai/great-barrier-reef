@@ -8,11 +8,11 @@ metric:
 parameters:
   # training run
   num_epochs:
-    value: 3
+    value: 2
   eval_every_n_epochs:
     value: 1
   save_every_n_epochs:
-    value: 1
+    value: 2
   train_num_workers:
     value: 2
   val_num_workers:
