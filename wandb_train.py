@@ -41,7 +41,7 @@ with wandb.init(tags=["sweep"]) as run:
                            min_size_train=256,
                            max_size_train=256,
                            trainable_layers=params["trainable_layers"],
-                           anchor_sizes=eval(params["anchor_sizes"])
+                           sizes=eval(params["anchor_sizes"])
                            )
 
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
