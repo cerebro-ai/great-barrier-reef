@@ -160,6 +160,7 @@ def train_and_evaluate(model: torch.nn.Module,
                        val_annotations_file: str,
                        num_epochs: int,
                        checkpoint_path: str,
+                       skip_initial_val: bool = False,
                        train_batch_size: int = 32,
                        train_num_workers: int = 4,
                        val_batch_size: int = 4,
@@ -196,6 +197,7 @@ def train_and_evaluate(model: torch.nn.Module,
         gradient_clipping_norm: threshold to which the gradients are clipped if
             their norm is larger than this (optional)
         learning_rate: learning rate for the optimizer
+        skip_initial_val: whether to skip the initial validation step
         eval_every_n_epochs: every eval_every_n_epochs epochs the model is evaluated
         save_every_n_epochs: every save_every_n_epochs epochs the model is saved
         steps_without_improvement: number of evaluations that are done without
@@ -244,7 +246,7 @@ def train_and_evaluate(model: torch.nn.Module,
     wandb.run.summary["best_model_metric"] = metric_for_best_model
 
     """First validation run"""
-    if hyper_params.get("skip_initial_val", False):
+    if not hyper_params.get("skip_initial_val", False):
         val_metrics, val_log_dict = evaluate_and_plot(model, data_loader_val,
                                                       device=device)
 
