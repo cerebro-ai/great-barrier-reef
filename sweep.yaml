@@ -1,3 +1,5 @@
+entity: cerebro-ai
+project: great-barrier-reef
 program: wandb_train.py
 method: random
 metric:
