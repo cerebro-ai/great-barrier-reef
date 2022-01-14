@@ -5,6 +5,7 @@ Training file for the great barrier reef kaggle challenge
 import math
 import os
 import sys
+from pathlib import Path
 from typing import Tuple, Optional, List
 
 import wandb
@@ -15,14 +16,21 @@ from gbr.evaluate import evaluate_and_plot
 from gbr.utils.tensorboard_utils import *
 
 
+def get_latest_checkpoint(checkpoints_dir: Path):
+    epoch = sorted([int(x.stem.split("_")[-1]) for x in checkpoints_dir.iterdir()])[-1]
+    return checkpoints_dir.joinpath(f"Epoch_{epoch}.pth")
+
+
 def get_data_loaders(root: str,
                      train_annotations_file: str,
                      val_annotations_file: str,
                      train_batch_size: int,
                      train_num_workers: int,
                      val_batch_size: int,
-                     val_num_workers: int) -> Tuple[torch.utils.data.DataLoader,
-                                                    torch.utils.data.DataLoader]:
+                     val_num_workers: int,
+                     **hyper_params
+                     ) -> Tuple[torch.utils.data.DataLoader,
+                                torch.utils.data.DataLoader]:
     """ Create dataloaders for training and validation.
 
     Args:
@@ -41,7 +49,7 @@ def get_data_loaders(root: str,
 
     dataset = GreatBarrierReefDataset(root=root,
                                       annotation_path=train_annotations_file,
-                                      transforms=get_transform(True))
+                                      transforms=get_transform(True, **hyper_params))
 
     data_loader_train = torch.utils.data.DataLoader(
         dataset, batch_size=train_batch_size, shuffle=True,
@@ -49,7 +57,7 @@ def get_data_loaders(root: str,
 
     dataset_val = GreatBarrierReefDataset(root=root,
                                           annotation_path=val_annotations_file,
-                                          transforms=get_transform(False))
+                                          transforms=get_transform(False, **hyper_params))
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val, batch_size=val_batch_size, shuffle=False,
         num_workers=val_num_workers, collate_fn=collate_fn, pin_memory=True)
@@ -152,6 +160,7 @@ def train_and_evaluate(model: torch.nn.Module,
                        val_annotations_file: str,
                        num_epochs: int,
                        checkpoint_path: str,
+                       skip_initial_val: bool = False,
                        train_batch_size: int = 32,
                        train_num_workers: int = 4,
                        val_batch_size: int = 4,
@@ -162,7 +171,8 @@ def train_and_evaluate(model: torch.nn.Module,
                        save_every_n_epochs: int = 1,
                        steps_without_improvement: int = 20,
                        keep_last_n_checkpoints: int = 10,
-                       existing_checkpoint_path: str = None):
+                       existing_checkpoint_path: str = None,
+                       **hyper_params):
     """ Trains and evaluates the model.
 
     Trains for num_epoch epochs, evaluates every eval_every_n_epochs, saves the
@@ -187,6 +197,7 @@ def train_and_evaluate(model: torch.nn.Module,
         gradient_clipping_norm: threshold to which the gradients are clipped if
             their norm is larger than this (optional)
         learning_rate: learning rate for the optimizer
+        skip_initial_val: whether to skip the initial validation step
         eval_every_n_epochs: every eval_every_n_epochs epochs the model is evaluated
         save_every_n_epochs: every save_every_n_epochs epochs the model is saved
         steps_without_improvement: number of evaluations that are done without
@@ -210,8 +221,10 @@ def train_and_evaluate(model: torch.nn.Module,
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
-
-    optimizer = torch.optim.NAdam(params, lr=learning_rate)
+    optimizer = torch.optim.Adam(params,
+                                 lr=learning_rate,
+                                 betas=(hyper_params.get("beta_1", 0.9), hyper_params.get('beta_2', 0.999)),
+                                 weight_decay=hyper_params.get("weight_decay", 0))
     total_steps = len(data_loader_train)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
     if existing_checkpoint_path:
@@ -233,19 +246,20 @@ def train_and_evaluate(model: torch.nn.Module,
     wandb.run.summary["best_model_metric"] = metric_for_best_model
 
     """First validation run"""
-    val_metrics, val_log_dict = evaluate_and_plot(model, data_loader_val,
-                                                  device=device)
+    if not hyper_params.get("skip_initial_val", False):
+        val_metrics, val_log_dict = evaluate_and_plot(model, data_loader_val,
+                                                      device=device)
 
-    wandb.log({
-        "epoch": 0,
-        "global_step": 0,
-        "val_step": 0,
-        **{
-            "validation/" + key: value
-            for key, value in val_metrics.items()
-        },
-        **val_log_dict  # images, videos and plots
-    })
+        wandb.log({
+            "epoch": 0,
+            "global_step": 0,
+            "val_step": 0,
+            **{
+                "validation/" + key: value
+                for key, value in val_metrics.items()
+            },
+            **val_log_dict  # images, videos and plots
+        })
     """END"""
 
     for epoch in range(start_epoch + 1, num_epochs + 1):

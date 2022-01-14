@@ -207,7 +207,9 @@ class RandomCropAroundRandomBox(DualTransform):
 
 
 def get_transform(train: bool = True,
-                  size: Tuple[int, int] = (512, 512)) -> A.Compose:
+                  size: Tuple[int, int] = (512, 512),
+                  **hyper_params
+                  ) -> A.Compose:
     """ Returns the transforms for the images and targets.
 
     Transformations:
@@ -220,18 +222,28 @@ def get_transform(train: bool = True,
     Returns:
         callable that applies the transformations on images and targets.
     """
+    hw = 256
+    rotation_limit = int(hyper_params.get("rotation_limit", 10))
+    zoom_in = hyper_params.get("zoom_in", 0.9)
+    zoom_out_1 = hyper_params.get("zoom_out_1", .1)
+    zoom_out_2 = hyper_params.get("zoom_out_2", .2)
+
+    center_crop = int(zoom_in * hw)
+    pad_1 = int(zoom_out_1 * hw)
+    pad_2 = int(zoom_out_2 * hw)
+
     if train:
         transforms = [
-            A.Rotate(10, border_mode=cv2.BORDER_CONSTANT, p=1),
-            RandomCropAroundRandomBox(256, 256),
+            A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
+            RandomCropAroundRandomBox(hw, hw),
             A.OneOf([
                 A.Compose([  # zoom in
-                    A.CenterCrop(240, 240),
-                    A.Resize(256, 256)
+                    A.CenterCrop(center_crop, center_crop),
+                    A.Resize(hw, hw)
                 ]),
-                A.CropAndPad(25, None),  # zoom out
-                A.CropAndPad(50, None)   # zoom out more
-                #A.RandomSizedBBoxSafeCrop(256, 256)
+                A.CropAndPad(pad_1, None),  # zoom out
+                A.CropAndPad(pad_2, None)  # zoom out more
+                # A.RandomSizedBBoxSafeCrop(256, 256)
             ], p=1),
             A.HorizontalFlip(p=0.5),
         ]
