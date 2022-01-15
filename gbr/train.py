@@ -247,19 +247,15 @@ def train_and_evaluate(model: torch.nn.Module,
 
     """First validation run"""
     if not hyper_params.get("skip_initial_val", False):
-        val_metrics, val_log_dict = evaluate_and_plot(model, data_loader_val,
+        _, _ = evaluate_and_plot(model, data_loader_val,
                                                       device=device)
 
         wandb.log({
             "epoch": 0,
             "global_step": 0,
             "val_step": 0,
-            **{
-                "validation/" + key: value
-                for key, value in val_metrics.items()
-            },
-            **val_log_dict  # images, videos and plots
         })
+
     """END"""
 
     for epoch in range(start_epoch + 1, num_epochs + 1):
