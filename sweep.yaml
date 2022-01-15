@@ -17,6 +17,8 @@ parameters:
     value: 1
   val_num_workers:
     value: 1
+  upload_videos:
+    value: False
 
   # batch size
   train_batch_size:

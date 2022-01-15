@@ -293,8 +293,10 @@ def train_and_evaluate(model: torch.nn.Module,
         lr_scheduler.step()
 
         if epoch % eval_every_n_epochs == 0:
-            val_metrics, val_log_dict = evaluate_and_plot(model, data_loader_val,
-                                                          device=device)
+            val_metrics, val_log_dict = evaluate_and_plot(model,
+                                                          data_loader_val,
+                                                          device=device,
+                                                          **hyper_params)
 
             wandb.log({
                 "epoch": epoch,

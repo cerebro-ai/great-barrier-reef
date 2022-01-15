@@ -51,6 +51,9 @@ with wandb.init(tags=["sweep"]) as run:
 
     wandb.watch(model, log_freq=100)
 
+    if "upload_videos" not in params.keys():
+        params["upload_videos"] = False
+
     train_and_evaluate(
         model=model,
         root=config["local"]["dataset_root"],

@@ -122,10 +122,12 @@ class Evaluator:
 @torch.no_grad()
 def evaluate(model: torch.nn.Module,
              data_loader: torch.utils.data.DataLoader,
-             device: torch.device) -> Tuple[Dict[str, float],
-                                            Dict[int, Dict],
-                                            Dict[str, List[wandb.Video]],
-                                            Dict[str, WBValue]
+             device: torch.device,
+             **hyper_params
+             ) -> Tuple[Dict[str, float],
+                        Dict[int, Dict],
+                        Dict[str, List[wandb.Video]],
+                        Dict[str, WBValue]
 ]:
     """ Evaluates the model on the data_loader and device and returns the losses,
     COCO metrics and detections visualized on the image.
@@ -149,7 +151,7 @@ def evaluate(model: torch.nn.Module,
 
     images_to_upload = {}
     multiple_video_buffer = MultipleVideoBuffer()
-    skip_videos = False
+    skip_videos = False or (not bool(hyper_params.get("upload_videos", True)))
 
     prediction_batches = []
 
@@ -239,9 +241,11 @@ def evaluate(model: torch.nn.Module,
 
 def evaluate_and_plot(model: torch.nn.Module,
                       data_loader: torch.utils.data.DataLoader,
-                      device: torch.device
+                      device: torch.device,
+                      **hyper_params
                       ):
-    val_metrics, images_to_upload, videos_dict, wandb_objects = evaluate(model, data_loader, device=device)
+    val_metrics, images_to_upload, videos_dict, wandb_objects = evaluate(model, data_loader, device=device,
+                                                                         **hyper_params)
 
     videos_flattened = []
     for key, videos in videos_dict.items():
