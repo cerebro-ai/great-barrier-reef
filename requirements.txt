@@ -12,3 +12,5 @@ moviepy
 imageio
 albumentations
 randomname
+mmcv
+easydict

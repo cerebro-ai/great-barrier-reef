@@ -85,7 +85,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         labels = np.zeros(boxes.shape[0])
 
         target = {'boxes': boxes,
-                  'labels': torch.ones(boxes.shape[0], dtype=torch.int64),
+                  'labels': torch.zeros(boxes.shape[0], dtype=torch.int64),
                   'image_id': torch.as_tensor(int(image_id)),
                   'area': area,
                   'iscrowd': iscrowd,
@@ -97,6 +97,9 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
             target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4)
             target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
                     target["boxes"][:, 3] - target["boxes"][:, 1])
+
+        # update labels if some boxes could deleted during the augmentation process
+        target["labels"] = torch.zeros(target["boxes"].shape[0], dtype=torch.int64)
 
         return image, target
 
@@ -248,7 +251,9 @@ def get_transform(train: bool = True,
             A.HorizontalFlip(p=0.5),
         ]
     else:
-        transforms = []
+        transforms = [
+            RandomCropAroundRandomBox(hw, hw)  # TODO remove this
+        ]
     transforms.append(At.ToTensorV2())
     return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc",
                                                           label_fields=["labels"],

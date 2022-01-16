@@ -134,9 +134,18 @@ def train_one_step(model: torch.nn.Module, images: torch.FloatTensor,
     Returns:
         loss values from the model
     """
-    loss_dict = model(images, targets)
+    res = model(images, targets)
+    if isinstance(res, tuple):
+        # yolox
+        output, loss_dict = res
+    else:
+        loss_dict = res
+
     if 'total_loss' not in loss_dict.keys():
-        loss_dict['total_loss'] = sum(loss for loss in loss_dict.values())
+        if 'loss' in loss_dict.keys():  # for yolox
+            loss_dict["total_loss"] = loss_dict["loss"]
+        else:
+            loss_dict['total_loss'] = sum(loss for loss in loss_dict.values())
 
     loss = loss_dict['total_loss']
 
@@ -246,15 +255,15 @@ def train_and_evaluate(model: torch.nn.Module,
     wandb.run.summary["best_model_metric"] = metric_for_best_model
 
     """First validation run"""
-    if not hyper_params.get("skip_initial_val", False):
-        _, _ = evaluate_and_plot(model, data_loader_val,
-                                                      device=device)
-
-        wandb.log({
-            "epoch": 0,
-            "global_step": 0,
-            "val_step": 0,
-        })
+    # if not hyper_params.get("skip_initial_val", False):
+    #     _, _ = evaluate_and_plot(model, data_loader_val,
+    #                                                   device=device)
+    #
+    #     wandb.log({
+    #         "epoch": 0,
+    #         "global_step": 0,
+    #         "val_step": 0,
+    #     })
 
     """END"""
 

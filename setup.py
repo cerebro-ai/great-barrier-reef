@@ -17,6 +17,8 @@ setuptools.setup(
         "moviepy",
         "imageio",
         "albumentations",
-        "randomname"
+        "randomname",
+        "mmcv",
+        "easydict"
     ]
 )
