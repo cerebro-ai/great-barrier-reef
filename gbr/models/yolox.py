@@ -56,11 +56,14 @@ class YOLOX(nn.Module):
         self.neck.init_weights()
         self.head.init_weights()
 
-    def forward(self, inputs, targets=None, show_time=False):
+    def forward(self, inputs, targets: torch.Tensor=None, show_time=False):
 
         # convert targets into yolox targets
         # List of dictionary -> Tensor(B, L, A)
-        targets = to_yolox_targets(targets)
+        device = torch.device(
+            'cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+        targets = to_yolox_targets(targets).to(device)
 
         if isinstance(inputs, list):
             inputs = torch.stack(inputs)
