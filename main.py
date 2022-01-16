@@ -25,7 +25,7 @@ def get_model(model_name: str, **kwargs):
                 depth_wise=True if model_size == "nano" else False,
                 input_size=(256, 256),
                 test_size=(256, 256),
-                num_classes=2,
+                num_classes=1,
                 label_name=["cots"],
                 reid_dim=0,
                 stride=[8, 16, 32],

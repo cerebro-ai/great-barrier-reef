@@ -80,7 +80,7 @@ def yolox_post_process(outputs, down_strides, num_classes, conf_thre, nms_thre, 
                 reid_feat = det[7:].cpu().numpy().tolist()
                 output[i]["reids"].append(reid_feat)
             else:
-                output[i]["boxes"].append(bbox)
+                output[i]["boxes"].append(torch.tensor(bbox))
                 output[i]["labels"].append(int(class_pred))
                 output[i]["scores"].append(conf)
 
