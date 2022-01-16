@@ -84,11 +84,14 @@ def yolox_post_process(outputs, down_strides, num_classes, conf_thre, nms_thre, 
                 output[i]["labels"].append(int(class_pred))
                 output[i]["scores"].append(conf)
 
+    device = torch.device(
+        'cuda') if torch.cuda.is_available() else torch.device('cpu')
+
     for i, v in enumerate(output):
         if len(v["boxes"]) > 0:
-            output[i]["boxes"] = torch.stack(v["boxes"], 0).view(-1, 4)
+            output[i]["boxes"] = torch.stack(v["boxes"], 0).view(-1, 4).to(device)
         else:
-            output[i]["boxes"] = torch.zeros((0, 4))
-        output[i]["labels"] = torch.tensor(v["labels"])
-        output[i]["scores"] = torch.tensor(v["scores"])
+            output[i]["boxes"] = torch.zeros((0, 4)).to(device)
+        output[i]["labels"] = torch.tensor(v["labels"]).to(device)
+        output[i]["scores"] = torch.tensor(v["scores"]).to(device)
     return output
