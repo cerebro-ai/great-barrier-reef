@@ -52,6 +52,7 @@ local:
   
   checkpoint_root: "/home/.../great-barrier-reef/checkpoints"
   resume_checkpoint: "2021-12-17T23_32_18/best_model.pth"
+  pretrained_weights_root: "/home/.../pretrained_weights"
 
 params:
   model_name: resnet50

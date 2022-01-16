@@ -4,6 +4,7 @@ Main file to run the training.
 from pathlib import Path
 from datetime import datetime
 
+import torch
 import wandb
 import yaml
 import randomname
@@ -14,10 +15,12 @@ from wandb.sdk.wandb_run import Run
 from gbr.train import train_and_evaluate, get_latest_checkpoint
 from gbr.models.faster_rcnn import fasterrcnn_fpn
 from gbr.models.yolox import get_model as get_yolox_model
+from gbr.utils.yolox_model_utils import load_model
 
 
 def get_model(model_name: str, **kwargs):
     if "yolo" in model_name.lower():
+
         model_size = model_name.split("-")[1]  # yolox-l
         opt = EasyDict(
             dict(
@@ -35,7 +38,9 @@ def get_model(model_name: str, **kwargs):
                 use_amp=False
             )
         )
-        return get_yolox_model(opt)
+        yolo_model = get_yolox_model(opt)
+        yolo_model = load_model(yolo_model, kwargs["local"]["pretrained_weights_root"] + f"/{model_name}.pth")
+        return yolo_model
     else:
         return fasterrcnn_fpn(model_name, **kwargs)
 
@@ -79,7 +84,7 @@ if __name__ == '__main__':
             else None
 
     # model = fasterrcnn_fpn(model_name, min_size_train=256, max_size_train=256)
-    model = get_model(model_name)
+    model = get_model(model_name, **config)
 
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
     # wide_resnet101_2: train 512x512 -> batch size 13, val 720x1280 -> batch size 16
