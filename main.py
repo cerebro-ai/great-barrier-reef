@@ -1,9 +1,12 @@
 """ Created by Dominik Schnaus at 13.12.2021.
 Main file to run the training.
 """
+import os
 from pathlib import Path
 from datetime import datetime
+import random
 
+import numpy as np
 import torch
 import wandb
 import yaml
@@ -26,8 +29,8 @@ def get_model(model_name: str, **kwargs):
             dict(
                 backbone=f"CSPDarknet-{model_size}",
                 depth_wise=True if model_size == "nano" else False,
-                input_size=(256, 256),
-                test_size=(256, 256),
+                input_size=(512, 512),
+                test_size=(736, 1312),
                 num_classes=1,
                 label_name=["cots"],
                 reid_dim=0,
@@ -45,7 +48,19 @@ def get_model(model_name: str, **kwargs):
         return fasterrcnn_fpn(model_name, **kwargs)
 
 
+def set_all_seeds(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+
+
 if __name__ == '__main__':
+
+    set_all_seeds(333)
+
     # load config
     with Path("./config.yaml").open("r") as f:
         config = yaml.safe_load(f)

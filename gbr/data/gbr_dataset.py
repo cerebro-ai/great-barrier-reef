@@ -225,7 +225,7 @@ def get_transform(train: bool = True,
     Returns:
         callable that applies the transformations on images and targets.
     """
-    hw = 256
+    hw = 512
     rotation_limit = int(hyper_params.get("rotation_limit", 10))
     zoom_in = hyper_params.get("zoom_in", 0.9)
     zoom_out_1 = hyper_params.get("zoom_out_1", .1)
@@ -237,22 +237,23 @@ def get_transform(train: bool = True,
 
     if train:
         transforms = [
-            A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
+            #A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
             RandomCropAroundRandomBox(hw, hw),
-            A.OneOf([
-                A.Compose([  # zoom in
-                    A.CenterCrop(center_crop, center_crop),
-                    A.Resize(hw, hw)
-                ]),
-                A.CropAndPad(pad_1, None),  # zoom out
-                A.CropAndPad(pad_2, None)  # zoom out more
-                # A.RandomSizedBBoxSafeCrop(256, 256)
-            ], p=1),
-            A.HorizontalFlip(p=0.5),
+            # A.OneOf([
+            #     A.Compose([  # zoom in
+            #         A.CenterCrop(center_crop, center_crop),
+            #         A.Resize(hw, hw)
+            #     ]),
+            #     A.CropAndPad(pad_1, None),  # zoom out
+            #     A.CropAndPad(pad_2, None)  # zoom out more
+            #     # A.RandomSizedBBoxSafeCrop(256, 256)
+            # ], p=1),
+            #A.HorizontalFlip(p=0.5),
         ]
     else:
         transforms = [
-            RandomCropAroundRandomBox(hw, hw)  # TODO remove this
+            A.Resize(736, 1312) # YOlOX breaks with the original (720, 1280) because they are not dividable with the highest stride 32
+            #RandomCropAroundRandomBox(hw, hw)  # TODO remove this
         ]
     transforms.append(At.ToTensorV2())
     return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc",

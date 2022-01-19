@@ -4,6 +4,8 @@
 # @Email   : zm19921120@126.com
 
 import time
+
+import cv2
 import numpy as np
 import torch
 import torch.nn as nn
@@ -43,6 +45,31 @@ def get_model(opt):
     return model
 
 
+def preproc(image, input_size, mean, std, swap=(2, 0, 1)):
+    if len(image.shape) == 3:
+        padded_img = np.ones((input_size[0], input_size[1], 3)) * 114.0
+    else:
+        padded_img = np.ones(input_size) * 114.0
+    img = np.array(image)
+    r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
+    resized_img = cv2.resize(
+        img,
+        (int(img.shape[1] * r), int(img.shape[0] * r)),
+        interpolation=cv2.INTER_LINEAR,
+    ).astype(np.float32)
+    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
+
+    padded_img = padded_img[:, :, ::-1]
+    padded_img /= 255.0
+    if mean is not None:
+        padded_img -= mean
+    if std is not None:
+        padded_img /= std
+    padded_img = padded_img.transpose(swap)
+    padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+    return padded_img, r
+
+
 class YOLOX(nn.Module):
     def __init__(self, opt, backbone, neck, head, loss):
         super(YOLOX, self).__init__()
@@ -52,11 +79,26 @@ class YOLOX(nn.Module):
         self.head = head
         self.loss = loss
 
+        self.image_mean = [0.485, 0.456, 0.406]
+        self.image_std = [0.229, 0.224, 0.225]
+
         self.backbone.init_weights()
         self.neck.init_weights()
         self.head.init_weights()
 
-    def forward(self, inputs, targets: torch.Tensor=None, show_time=False):
+    def normalize(self, image):
+        dtype, device = image.dtype, image.device
+        mean = torch.as_tensor(self.image_mean, dtype=dtype, device=device)
+        std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
+        return (image - mean[:, None, None]) / std[:, None, None]
+
+    def normalize_batch(self, images):
+        dtype, device = images.dtype, images.device
+        mean = torch.as_tensor(self.image_mean, dtype=dtype, device=device)
+        std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
+        return (images - mean[None, :, None, None]) / std[None, :, None, None]
+
+    def forward(self, inputs, targets: torch.Tensor = None, show_time=False):
 
         # convert targets into yolox targets
         # List of dictionary -> Tensor(B, L, A)
@@ -66,7 +108,13 @@ class YOLOX(nn.Module):
         targets = to_yolox_targets(targets).to(device)
 
         if isinstance(inputs, list):
+            for i in range(len(inputs)):
+                image = inputs[i]
+                image = self.normalize(image)
+                inputs[i] = image
             inputs = torch.stack(inputs)
+        else:
+            inputs = self.normalize_batch(inputs)
 
         with torch.cuda.amp.autocast(enabled=self.opt.use_amp):
             if show_time:
@@ -90,10 +138,13 @@ class YOLOX(nn.Module):
             if self.training:
                 return yolo_outputs, loss
             else:
-                return yolox_post_process(yolo_outputs, self.opt.stride, self.opt.num_classes, self.opt.vis_thresh,
-                                          self.opt.nms_thresh, self.opt.label_name,
+                return yolox_post_process(yolo_outputs, self.opt.stride,
+                                          self.opt.num_classes,
+                                          conf_thre=self.opt.vis_thresh,
+                                          nms_thre=self.opt.nms_thresh,
+                                          label_name=self.opt.label_name,
                                           img_ratios=[1] * inputs.shape[0],
-                                          img_shape=[img.shape[:2] for img in inputs]
+                                          img_shape=[img.shape[1:] for img in inputs]
                                           )
         else:
             return yolo_outputs
