@@ -59,7 +59,7 @@ def set_all_seeds(seed):
 
 if __name__ == '__main__':
 
-    set_all_seeds(333)
+    #set_all_seeds(333)
 
     # load config
     with Path("./config.yaml").open("r") as f:
