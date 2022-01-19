@@ -70,7 +70,7 @@ if __name__ == '__main__':
     date_time = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
     model_name = config["params"]["model_name"]
     run_name = randomname.get_name() + "-" + model_name
-    run: Run = wandb.init(entity="rkstgr",
+    run: Run = wandb.init(entity="cerebro-ai",
                           project="great-barrier-reef",
                           name=run_name,
                           notes=f"{date_time}",
