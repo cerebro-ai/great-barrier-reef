@@ -151,7 +151,7 @@ class YOLOX(nn.Module):
 
 
 def to_yolox_targets(targets):
-    MAX_LABELS = 10
+    MAX_LABELS = 20
 
     all_labels = []
     for target in targets:
