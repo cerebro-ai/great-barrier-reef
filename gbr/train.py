@@ -225,7 +225,8 @@ def train_and_evaluate(model: torch.nn.Module,
                                                           train_batch_size,
                                                           train_num_workers,
                                                           val_batch_size,
-                                                          val_num_workers)
+                                                          val_num_workers,
+                                                          **hyper_params)
 
     model.to(device)
 

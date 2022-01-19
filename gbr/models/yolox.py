@@ -105,7 +105,7 @@ class YOLOX(nn.Module):
         device = torch.device(
             'cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        targets = to_yolox_targets(targets).to(device)
+        yolo_targets = to_yolox_targets(targets).to(device)
 
         if isinstance(inputs, list):
             for i in range(len(inputs)):
@@ -129,12 +129,12 @@ class YOLOX(nn.Module):
                 s2 = sync_time(inputs)
                 print("[inference] batch={} time: {}s".format("x".join([str(i) for i in inputs.shape]), s2 - s1))
 
-            if targets is not None:
-                loss = self.loss(yolo_outputs, targets)
+            if yolo_targets is not None:
+                loss = self.loss(yolo_outputs, yolo_targets)
                 # for k, v in loss.items():
                 #     print(k, v, v.dtype, v.device)  # always float32
 
-        if targets is not None:
+        if yolo_targets is not None:
             if self.training:
                 return yolo_outputs, loss
             else:
@@ -155,7 +155,7 @@ def to_yolox_targets(targets):
 
     all_labels = []
     for target in targets:
-        boxes = xyxy2cxcywh(target["boxes"])
+        boxes = xyxy2cxcywh(target["boxes"].clone())
         labels = torch.hstack([target["labels"].unsqueeze(1), boxes])
         padded_labels = torch.zeros((MAX_LABELS, 5))
         padded_labels[:len(target["labels"]), :] = labels
