@@ -226,10 +226,15 @@ def get_transform(train: bool = True,
         callable that applies the transformations on images and targets.
     """
     hw = 256
-    rotation_limit = int(hyper_params.get("rotation_limit", 10))
-    zoom_in = hyper_params.get("zoom_in", 0.9)
-    zoom_out_1 = hyper_params.get("zoom_out_1", .1)
-    zoom_out_2 = hyper_params.get("zoom_out_2", .2)
+    rotation_limit = int(hyper_params.get("rotation_limit", 30))
+    zoom_in = hyper_params.get("zoom_in", 0.8)
+    zoom_out_1 = hyper_params.get("zoom_out_1", .2)
+    zoom_out_2 = hyper_params.get("zoom_out_2", .4)
+
+    print("Augmentation: rotation_limit", rotation_limit)
+    print("Augmentation: zoom_in", zoom_in)
+    print("Augmentation: zoom_out_1", zoom_out_1)
+    print("Augmentation: zoom_out_2", zoom_out_2)
 
     center_crop = int(zoom_in * hw)
     pad_1 = int(zoom_out_1 * hw)
@@ -247,7 +252,7 @@ def get_transform(train: bool = True,
                 A.CropAndPad(pad_1, None),  # zoom out
                 A.CropAndPad(pad_2, None)  # zoom out more
                 # A.RandomSizedBBoxSafeCrop(256, 256)
-            ], p=1),
+            ], p=0.75),
             A.HorizontalFlip(p=0.5),
             A.Resize(hw, hw)
         ]
