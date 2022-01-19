@@ -237,7 +237,7 @@ def get_transform(train: bool = True,
 
     if train:
         transforms = [
-            #A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
+            # A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
             RandomCropAroundRandomBox(hw, hw),
             # A.OneOf([
             #     A.Compose([  # zoom in
@@ -248,12 +248,14 @@ def get_transform(train: bool = True,
             #     A.CropAndPad(pad_2, None)  # zoom out more
             #     # A.RandomSizedBBoxSafeCrop(256, 256)
             # ], p=1),
-            #A.HorizontalFlip(p=0.5),
+            # A.HorizontalFlip(p=0.5),
+            A.Resize(512, 512)
         ]
     else:
         transforms = [
-            A.Resize(736, 1312) # YOlOX breaks with the original (720, 1280) because they are not dividable with the highest stride 32
-            #RandomCropAroundRandomBox(hw, hw)  # TODO remove this
+            A.Resize(736, 1312)
+            # YOlOX breaks with the original (720, 1280) because they are not dividable with the highest stride 32
+            # RandomCropAroundRandomBox(hw, hw)  # TODO remove this
         ]
     transforms.append(At.ToTensorV2())
     return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc",
