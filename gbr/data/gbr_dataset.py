@@ -225,7 +225,7 @@ def get_transform(train: bool = True,
     Returns:
         callable that applies the transformations on images and targets.
     """
-    hw = 512
+    hw = 256
     rotation_limit = int(hyper_params.get("rotation_limit", 10))
     zoom_in = hyper_params.get("zoom_in", 0.9)
     zoom_out_1 = hyper_params.get("zoom_out_1", .1)
@@ -239,15 +239,15 @@ def get_transform(train: bool = True,
         transforms = [
             A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
             RandomCropAroundRandomBox(hw, hw),
-            # A.OneOf([
-            #     A.Compose([  # zoom in
-            #         A.CenterCrop(center_crop, center_crop),
-            #         A.Resize(hw, hw)
-            #     ]),
-            #     A.CropAndPad(pad_1, None),  # zoom out
-            #     A.CropAndPad(pad_2, None)  # zoom out more
-            #     # A.RandomSizedBBoxSafeCrop(256, 256)
-            # ], p=1),
+            A.OneOf([
+                A.Compose([  # zoom in
+                    A.CenterCrop(center_crop, center_crop),
+                    A.Resize(hw, hw)
+                ]),
+                A.CropAndPad(pad_1, None),  # zoom out
+                A.CropAndPad(pad_2, None)  # zoom out more
+                # A.RandomSizedBBoxSafeCrop(256, 256)
+            ], p=1),
             A.HorizontalFlip(p=0.5),
             A.Resize(hw, hw)
         ]
