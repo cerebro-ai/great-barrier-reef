@@ -11,41 +11,11 @@ import torch
 import wandb
 import yaml
 import randomname
-from easydict import EasyDict
 
 from wandb.sdk.wandb_run import Run
 
 from gbr.train import train_and_evaluate, get_latest_checkpoint
-from gbr.models.faster_rcnn import fasterrcnn_fpn
-from gbr.models.yolox import get_model as get_yolox_model
-from gbr.utils.yolox_model_utils import load_model
-
-
-def get_model(model_name: str, **kwargs):
-    if "yolo" in model_name.lower():
-
-        model_size = model_name.split("-")[1]  # yolox-l
-        opt = EasyDict(
-            dict(
-                backbone=f"CSPDarknet-{model_size}",
-                depth_wise=True if model_size == "nano" else False,
-                input_size=(256, 256),
-                test_size=(736, 1312),
-                num_classes=1,
-                label_name=["cots"],
-                reid_dim=0,
-                stride=[8, 16, 32],
-                vis_thresh=0.001,
-                nms_thresh=0.65,
-                tracking_id_nums=None,
-                use_amp=False
-            )
-        )
-        yolo_model = get_yolox_model(opt)
-        yolo_model = load_model(yolo_model, kwargs["local"]["pretrained_weights_root"] + f"/{model_name}.pth")
-        return yolo_model
-    else:
-        return fasterrcnn_fpn(model_name, **kwargs)
+from gbr.models import get_model
 
 
 def set_all_seeds(seed):
@@ -59,7 +29,7 @@ def set_all_seeds(seed):
 
 if __name__ == '__main__':
 
-    #set_all_seeds(333)
+    # set_all_seeds(333)
 
     # load config
     with Path("./config.yaml").open("r") as f:
@@ -98,7 +68,7 @@ if __name__ == '__main__':
             if existing_checkpoint \
             else None
 
-    #model = fasterrcnn_fpn(model_name, min_size_train=512, max_size_train=512)
+    # model = fasterrcnn_fpn(model_name, min_size_train=512, max_size_train=512)
     model = get_model(model_name, **config)
 
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
