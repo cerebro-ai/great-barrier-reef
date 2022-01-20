@@ -226,7 +226,7 @@ def get_transform(train: bool = True,
         callable that applies the transformations on images and targets.
     """
     hw = 256
-    rotation_limit = int(hyper_params.get("rotation_limit", 30))
+    rotation_limit = int(hyper_params.get("rotation_limit", 10))
     zoom_in = hyper_params.get("zoom_in", 0.8)
     zoom_out_1 = hyper_params.get("zoom_out_1", .2)
     zoom_out_2 = hyper_params.get("zoom_out_2", .4)
