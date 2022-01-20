@@ -22,8 +22,8 @@ def get_model(model_name: str, **kwargs):
             dict(
                 backbone=f"CSPDarknet-{model_size}",
                 depth_wise=True if model_size == "nano" else False,
-                input_size=(256, 256),
-                test_size=(736, 1312),
+                input_size=(512, 512),
+                test_size=(720*2, 1280*2), #736x1312
                 num_classes=1,
                 label_name=["cots"],
                 reid_dim=0,

@@ -254,11 +254,11 @@ def get_transform(train: bool = True,
                 # A.RandomSizedBBoxSafeCrop(256, 256)
             ], p=0.75),
             A.HorizontalFlip(p=0.5),
-            A.Resize(hw, hw)
+            A.Resize(512, 512)
         ]
     else:
         transforms = [
-            A.Resize(736, 1312)
+            A.Resize(720*2, 1280*2)
             # YOlOX breaks with the original (720, 1280) because they are not dividable with the highest stride 32
             # RandomCropAroundRandomBox(hw, hw)  # TODO remove this
         ]
