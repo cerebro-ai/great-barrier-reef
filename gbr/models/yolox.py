@@ -147,7 +147,17 @@ class YOLOX(nn.Module):
                                           img_shape=[img.shape[1:] for img in inputs]
                                           )
         else:
-            return yolo_outputs
+            if self.training:
+                return yolo_outputs
+            else:
+                return yolox_post_process(yolo_outputs, self.opt.stride,
+                                          self.opt.num_classes,
+                                          conf_thre=self.opt.vis_thresh,
+                                          nms_thre=self.opt.nms_thresh,
+                                          label_name=self.opt.label_name,
+                                          img_ratios=[1] * inputs.shape[0],
+                                          img_shape=[img.shape[1:] for img in inputs]
+                                          )
 
 
 def to_yolox_targets(targets):
