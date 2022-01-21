@@ -23,13 +23,13 @@ def get_model(model_name: str, **kwargs):
                 backbone=f"CSPDarknet-{model_size}",
                 depth_wise=True if model_size == "nano" else False,
                 input_size=(512, 512),
-                test_size=(720*2, 1280*2), #736x1312
+                test_size=(736, 1312), #736x1312
                 num_classes=1,
                 label_name=["cots"],
                 reid_dim=0,
                 stride=[8, 16, 32],
                 vis_thresh=0.001,
-                nms_thresh=kwargs["params"].get("nms_thresh", 0.65),
+                nms_thresh=kwargs["params"].get("nms_thresh", 0.5),
                 tracking_id_nums=None,
                 use_amp=False
             )

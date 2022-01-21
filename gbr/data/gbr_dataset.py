@@ -225,46 +225,47 @@ def get_transform(train: bool = True,
     Returns:
         callable that applies the transformations on images and targets.
     """
-    hw = 256
+    h, w = 512, 512
     rotation_limit = int(hyper_params.get("rotation_limit", 10))
     zoom_in = hyper_params.get("zoom_in", 0.8)
-    zoom_out_1 = hyper_params.get("zoom_out_1", .2)
-    zoom_out_2 = hyper_params.get("zoom_out_2", .4)
+    zoom_out_1 = hyper_params.get("zoom_out_1", .1)
+    zoom_out_2 = hyper_params.get("zoom_out_2", .2)
 
     print("Augmentation: rotation_limit", rotation_limit)
     print("Augmentation: zoom_in", zoom_in)
     print("Augmentation: zoom_out_1", zoom_out_1)
     print("Augmentation: zoom_out_2", zoom_out_2)
 
-    center_crop = int(zoom_in * hw)
-    pad_1 = int(zoom_out_1 * hw)
-    pad_2 = int(zoom_out_2 * hw)
+    center_crop_h, center_crop_w = int(zoom_in * h), int(zoom_in * w)
+    #pad_1 = int(zoom_out_1 * hw)
+    #pad_2 = int(zoom_out_2 * hw)
 
     if train:
         transforms = [
             A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
-            RandomCropAroundRandomBox(hw, hw),
-            A.OneOf([
-                A.Compose([  # zoom in
-                    A.CenterCrop(center_crop, center_crop),
-                    A.Resize(hw, hw)
-                ]),
-                A.CropAndPad(pad_1, None),  # zoom out
-                A.CropAndPad(pad_2, None)  # zoom out more
-                # A.RandomSizedBBoxSafeCrop(256, 256)
-            ], p=0.75),
+            A.Perspective(p=1),
             A.HorizontalFlip(p=0.5),
-            A.Resize(512, 512)
+            RandomCropAroundRandomBox(h, w),
+            # A.OneOf([
+            #     A.Compose([  # zoom in
+            #         A.CenterCrop(center_crop, center_crop),
+            #         A.Resize(hw, hw)
+            #     ]),
+            #     A.CropAndPad(pad_1, None),  # zoom out
+            #     A.CropAndPad(pad_2, None)  # zoom out more
+            #     # A.RandomSizedBBoxSafeCrop(256, 256)
+            # ], p=0.75),
+            A.Resize(h, w)
         ]
     else:
         transforms = [
-            A.Resize(720*2, 1280*2)
+            A.Resize(736, 1312)
             # YOlOX breaks with the original (720, 1280) because they are not dividable with the highest stride 32
             # RandomCropAroundRandomBox(hw, hw)  # TODO remove this
         ]
     transforms.append(At.ToTensorV2())
     return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc",
                                                           label_fields=["labels"],
-                                                          min_visibility=0.3
+                                                          min_visibility=0.2
                                                           )
                      )
