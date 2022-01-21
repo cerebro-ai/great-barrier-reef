@@ -105,7 +105,10 @@ class YOLOX(nn.Module):
         device = torch.device(
             'cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        yolo_targets = to_yolox_targets(targets).to(device)
+        if targets is not None:
+            yolo_targets = to_yolox_targets(targets).to(device)
+        else:
+            yolo_targets = None
 
         if isinstance(inputs, list):
             for i in range(len(inputs)):
