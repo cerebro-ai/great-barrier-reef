@@ -80,7 +80,7 @@ class YOLOX(nn.Module):
         self.loss = loss
 
         self.image_mean = [0.2652, 0.5725, 0.6195]
-        self.image_std = [0.0585, 0.0278, 0.0244]
+        self.image_std = [0.2155, 0.1917, 0.1979]
 
         self.backbone.init_weights()
         self.neck.init_weights()
