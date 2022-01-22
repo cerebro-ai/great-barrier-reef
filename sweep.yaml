@@ -25,6 +25,10 @@ parameters:
     value: 32
   val_batch_size:
     value: 32
+  input_size:
+    value: [512, 512]
+  test_size:
+    value: [736, 1312]
 
   # optimizer
   optimizer:
