@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Tuple, Optional, List
 
+import torch.optim
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
@@ -28,7 +29,7 @@ def get_data_loaders(root: str,
                      train_num_workers: int,
                      val_batch_size: int,
                      val_num_workers: int,
-                     **hyper_params
+                     **config_params
                      ) -> Tuple[torch.utils.data.DataLoader,
                                 torch.utils.data.DataLoader]:
     """ Create dataloaders for training and validation.
@@ -49,17 +50,16 @@ def get_data_loaders(root: str,
 
     dataset = GreatBarrierReefDataset(root=root,
                                       annotation_path=train_annotations_file,
-                                      transforms=get_transform(True, **hyper_params),
-                                      copy_paste=hyper_params.get("use_copy_paste", False)
+                                      transforms=get_transform(True, **config_params),
+                                      copy_paste=config_params.get("use_copy_paste", False)
                                       )
-
     data_loader_train = torch.utils.data.DataLoader(
         dataset, batch_size=train_batch_size, shuffle=True,
         num_workers=train_num_workers, collate_fn=collate_fn, pin_memory=True)
 
     dataset_val = GreatBarrierReefDataset(root=root,
                                           annotation_path=val_annotations_file,
-                                          transforms=get_transform(False, **hyper_params))
+                                          transforms=get_transform(False, **config_params))
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val, batch_size=val_batch_size, shuffle=False,
         num_workers=val_num_workers, collate_fn=collate_fn, pin_memory=True)
@@ -176,14 +176,13 @@ def train_and_evaluate(model: torch.nn.Module,
                        train_num_workers: int = 4,
                        val_batch_size: int = 4,
                        val_num_workers: int = 4,
-                       gradient_clipping_norm: Optional[float] = None,
                        learning_rate: float = 0.0005,
                        eval_every_n_epochs: int = 1,
                        save_every_n_epochs: int = 1,
                        steps_without_improvement: int = 20,
                        keep_last_n_checkpoints: int = 10,
                        existing_checkpoint_path: str = None,
-                       **hyper_params):
+                       **config_params):
     """ Trains and evaluates the model.
 
     Trains for num_epoch epochs, evaluates every eval_every_n_epochs, saves the
@@ -228,15 +227,26 @@ def train_and_evaluate(model: torch.nn.Module,
                                                           train_num_workers,
                                                           val_batch_size,
                                                           val_num_workers,
-                                                          **hyper_params)
+                                                          **config_params)
 
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.Adam(params,
-                                 lr=learning_rate,
-                                 betas=(hyper_params.get("beta_1", 0.9), hyper_params.get('beta_2', 0.999)),
-                                 weight_decay=hyper_params.get("weight_decay", 0))
+
+    if config_params["optimizer"] == "SGD":
+        optimizer = torch.optim.SGD(params,
+                                    lr=learning_rate,
+                                    momentum=config_params.get("momentum", 0),
+                                    weight_decay=config_params.get("weight_decay", 0),
+                                    nesterov=config_params.get("nesterov", False),
+                                    dampening=config_params.get("dampening", 0)
+                                    )
+    else:
+        optimizer = torch.optim.Adam(params,
+                                     lr=learning_rate,
+                                     betas=(config_params.get("beta_1", 0.9), config_params.get('beta_2', 0.999)),
+                                     weight_decay=config_params.get("weight_decay", 0))
+
     total_steps = len(data_loader_train)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
     if existing_checkpoint_path:
@@ -288,7 +298,7 @@ def train_and_evaluate(model: torch.nn.Module,
             targets = [{k: v.to(device) for k, v in t.items()} for t in
                        targets]
             loss_dict = train_one_step(model, images, targets, optimizer,
-                                       gradient_clipping_norm)
+                                       config_params.get("gradient_clipping_norm", None))
 
             wandb.log({
                 "epoch": epoch,
@@ -308,7 +318,7 @@ def train_and_evaluate(model: torch.nn.Module,
             val_metrics, val_log_dict = evaluate_and_plot(model,
                                                           data_loader_val,
                                                           device=device,
-                                                          **hyper_params)
+                                                          **config_params)
 
             wandb.log({
                 "epoch": epoch,

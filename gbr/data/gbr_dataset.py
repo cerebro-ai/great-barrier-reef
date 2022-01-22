@@ -118,7 +118,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         image1, target1 = self.pull_item(idx)
 
         if self.copy_paste:
-            rand_idx = random.randint(0, len(self.annotation_file)-1)
+            rand_idx = random.randint(0, len(self.annotation_file) - 1)
             image2, target2 = self.pull_item(rand_idx)
             image, idxs = copy_paste(image1, target1, image2, target2)
             target = combine_targets(target1, target2, idxs)
@@ -142,7 +142,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         return len(self.annotation_file)
 
 
-def copy_paste(image1, t1, image2, t2, margin_min=5, margin_max=25, l1_distance_margin=20):
+def copy_paste(image1, t1, image2, t2, margin_min=40, margin_max=60, l1_distance_margin=20):
     """Copy the boxes from image2 onto image1 with a margin and save distance to the original boxes
 
     when copying a target, margin specifies how much more from the image should be copied
@@ -318,8 +318,7 @@ class RandomCropAroundRandomBox(DualTransform):
 
 
 def get_transform(train: bool = True,
-                  size: Tuple[int, int] = (512, 512),
-                  **hyper_params
+                  **config_params
                   ) -> A.Compose:
     """ Returns the transforms for the images and targets.
 
@@ -333,33 +332,37 @@ def get_transform(train: bool = True,
     Returns:
         callable that applies the transformations on images and targets.
     """
-    h, w = 512, 512
-    rotation_limit = int(hyper_params.get("rotation_limit", 10))
-    random_scale = tuple(hyper_params.get("random_scale", (0.7, 1.2)))
-    random_rain_prob = float(hyper_params.get("random_rain_prob", 0.2))
+    # no default
+
+    rotation_limit = int(config_params.get("rotation_limit", 10))
+    random_scale = config_params.get("random_scale", (0.7, 1.2))
+    random_rain_prob = float(config_params.get("random_rain_prob", 0.2))
 
     if train:
+        h, w = config_params["input_size"]
         transforms = [
             A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
             A.Perspective(p=1),
             A.HorizontalFlip(p=0.5),
-            A.RandomScale(random_scale, p=1),
+            A.RandomScale(scale_limit=random_scale, p=1),
             RandomCropAroundRandomBox(h, w),
-            A.Resize(h, w),
+            A.Resize(height=h, width=w),
             # A.RGBShift(p=1),
             # A.Equalize(p=1),
             # A.ColorJitter(brightness=0.05, hue=0.05, contrast=0.05, saturation=0.05, p=1),
             A.RandomRain(p=random_rain_prob)
         ]
     else:
+        h, w = config_params.get("test_size", (720, 1280))
         transforms = [
-            A.Resize(736, 1312)
+            A.Resize(height=h, width=w)
             # YOlOX breaks with the original (720, 1280) because they are not dividable with the highest stride 32
             # RandomCropAroundRandomBox(hw, hw)  # TODO remove this
         ]
     transforms.append(At.ToTensorV2())
     return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc",
                                                           label_fields=["labels"],
-                                                          min_visibility=0.2
+                                                          min_visibility=0.2,
+                                                          min_area=2000
                                                           )
                      )
