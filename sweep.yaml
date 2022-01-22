@@ -4,39 +4,43 @@ program: wandb_train.py
 method: random
 metric:
   goal: maximize
-  name: "validation/F2 score"
+  name: "best_value"
 parameters:
   # training run
   num_epochs:
-    value: 4
+    value: 3
   eval_every_n_epochs:
     value: 1
   save_every_n_epochs:
-    value: 2
+    value: 1
   train_num_workers:
-    value: 1
+    value: 4
   val_num_workers:
-    value: 1
+    value: 4
   upload_videos:
     value: False
 
   # batch size
   train_batch_size:
-    value: 16
+    value: 32
   val_batch_size:
-    value: 16
+    value: 32
 
   # optimizer
   optimizer:
-    values: ["Adam", "SGD"]
+    values: [ "Adam", "SGD" ]
   learning_rate:
     distribution: log_uniform
-    max: -8.11 # 3.e-4
-    min: -11.51 # 1.e-5
+    max: -9.21 # 1.e-4
+    min: -12.20 # 5.e-6
   weight_decay:
-    values: [ 0, 0.0005 ] # 0
+    distribution: uniform
+    min: 0
+    max: 0.001
   momentum:
-    values: [1, 0.9, 0.8]
+    distribution: uniform
+    min: 0
+    max: 0.99
   beta_1:
     value: 0.9 # 0.9
   beta_2:
@@ -60,6 +64,6 @@ parameters:
     min: 0
     max: 0.5
   random_rain_prob:
-    values: [ 0, 0.5 ]
+    values: [ 0, 0.1, 0.5 ]
   use_copy_paste:
     values: [ True, False ]
