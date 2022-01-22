@@ -18,7 +18,9 @@ def test_transformation():
     path = Path(__file__).parent.parent.joinpath("dataset").absolute()
     gbr_dataset = GreatBarrierReefDataset(root=str(path),
                                           annotation_path=str(Path(path).joinpath("reef_starter_0.05/train_clean.csv")),
-                                          transforms=get_transform(True))
+                                          transforms=get_transform(True),
+                                          copy_paste=True,
+                                          apply_mixup=False)
     data_loader_train = torch.utils.data.DataLoader(
         gbr_dataset, batch_size=3, shuffle=True,
         num_workers=0, collate_fn=collate_fn, pin_memory=True)

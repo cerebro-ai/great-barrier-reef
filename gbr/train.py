@@ -49,7 +49,9 @@ def get_data_loaders(root: str,
 
     dataset = GreatBarrierReefDataset(root=root,
                                       annotation_path=train_annotations_file,
-                                      transforms=get_transform(True, **hyper_params))
+                                      transforms=get_transform(True, **hyper_params),
+                                      copy_paste=hyper_params.get("use_copy_paste", False)
+                                      )
 
     data_loader_train = torch.utils.data.DataLoader(
         dataset, batch_size=train_batch_size, shuffle=True,
