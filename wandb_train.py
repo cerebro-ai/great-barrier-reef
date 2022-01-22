@@ -5,8 +5,7 @@ import wandb
 import yaml
 
 from gbr.train import train_and_evaluate, get_latest_checkpoint
-from gbr.models.faster_rcnn import fasterrcnn_fpn
-from models import get_model
+from gbr.models import get_model
 
 with Path("./config.yaml").open("r") as f:
     config = yaml.safe_load(f)
