@@ -118,7 +118,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         image1, target1 = self.pull_item(idx)
 
         if self.copy_paste:
-            rand_idx = random.randint(0, len(self.annotation_file))
+            rand_idx = random.randint(0, len(self.annotation_file)-1)
             image2, target2 = self.pull_item(rand_idx)
             image, idxs = copy_paste(image1, target1, image2, target2)
             target = combine_targets(target1, target2, idxs)
@@ -348,7 +348,7 @@ def get_transform(train: bool = True,
             A.Resize(h, w),
             # A.RGBShift(p=1),
             # A.Equalize(p=1),
-            A.ColorJitter(brightness=0.05, hue=0.05, contrast=0.05, saturation=0.05, p=1),
+            # A.ColorJitter(brightness=0.05, hue=0.05, contrast=0.05, saturation=0.05, p=1),
             A.RandomRain(p=random_rain_prob)
         ]
     else:
