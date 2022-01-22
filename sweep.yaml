@@ -14,17 +14,17 @@ parameters:
   save_every_n_epochs:
     value: 1
   train_num_workers:
-    value: 4
+    value: 8
   val_num_workers:
-    value: 4
+    value: 8
   upload_videos:
     value: False
 
   # batch size
   train_batch_size:
-    value: 24
+    value: 32
   val_batch_size:
-    value: 24
+    value: 32
   input_size:
     value: [256, 256]
   test_size:
@@ -49,6 +49,8 @@ parameters:
     value: 0.9 # 0.9
   beta_2:
     value: 0.999 # 0.999
+  nesterov:
+    values: [False, True]
 
 
   # model
