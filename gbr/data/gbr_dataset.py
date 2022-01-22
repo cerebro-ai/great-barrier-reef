@@ -362,7 +362,6 @@ def get_transform(train: bool = True,
     transforms.append(At.ToTensorV2())
     return A.Compose(transforms, bbox_params=A.BboxParams(format="pascal_voc",
                                                           label_fields=["labels"],
-                                                          min_visibility=0.2,
-                                                          min_area=2000
+                                                          min_visibility=0.2
                                                           )
                      )
