@@ -8,7 +8,7 @@ metric:
 parameters:
   # training run
   num_epochs:
-    value: 3
+    value: 2
   eval_every_n_epochs:
     value: 1
   save_every_n_epochs:
@@ -22,11 +22,11 @@ parameters:
 
   # batch size
   train_batch_size:
-    value: 32
+    value: 24
   val_batch_size:
-    value: 32
+    value: 24
   input_size:
-    value: [512, 512]
+    value: [256, 256]
   test_size:
     value: [736, 1312]
 
@@ -36,7 +36,7 @@ parameters:
   learning_rate:
     distribution: log_uniform
     max: -9.21 # 1.e-4
-    min: -12.20 # 5.e-6
+    min: -11.51 # 1.e-5
   weight_decay:
     distribution: uniform
     min: 0
@@ -53,7 +53,7 @@ parameters:
 
   # model
   model_name:
-    value: "yolox-m"
+    value: "yolox-s"
   nms_thresh:
     distribution: uniform
     max: 0.8
