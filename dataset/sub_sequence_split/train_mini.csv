@@ -1,7 +1,2 @@
 video_id,sequence,video_frame,sequence_frame,image_id,annotations,clamped_annotations,sub_sequence_id,n_annotations,empty_sub_sequence,is_train
 0,40258,16,16,0-16,"[{'x': 559, 'y': 213, 'width': 50, 'height': 32}]","[{'x': 559, 'y': 213, 'width': 50, 'height': 32}]",40258000,1,False,True
-0,40258,17,17,0-17,"[{'x': 558, 'y': 213, 'width': 50, 'height': 32}]","[{'x': 558, 'y': 213, 'width': 50, 'height': 32}]",40258000,1,False,True
-0,40258,18,18,0-18,"[{'x': 557, 'y': 213, 'width': 50, 'height': 32}]","[{'x': 557, 'y': 213, 'width': 50, 'height': 32}]",40258000,1,False,True
-0,40258,19,19,0-19,"[{'x': 556, 'y': 214, 'width': 50, 'height': 32}]","[{'x': 556, 'y': 214, 'width': 50, 'height': 32}]",40258000,1,False,True
-0,40258,20,20,0-20,"[{'x': 555, 'y': 214, 'width': 50, 'height': 32}]","[{'x': 555, 'y': 214, 'width': 50, 'height': 32}]",40258000,1,False,True
-0,40258,21,21,0-21,"[{'x': 550, 'y': 214, 'width': 50, 'height': 32}]","[{'x': 550, 'y': 214, 'width': 50, 'height': 32}]",40258000,1,False,True
