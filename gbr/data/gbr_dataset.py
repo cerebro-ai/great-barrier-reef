@@ -131,8 +131,12 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         if self.copy_paste:
             rand_idx = random.randint(0, len(self.annotation_file) - 1)
             image2, target2 = self.pull_item(rand_idx)
-            image, boxes = copy_paste_augmentation(image1, target1["boxes"], image2, target2["boxes"])
-            target = update_target_boxes(target1, boxes)
+            try:
+                image, boxes = copy_paste_augmentation(image1, target1["boxes"], image2, target2["boxes"])
+                target = update_target_boxes(target1, boxes)
+            except Exception as e:
+                image, target = image1, target1
+                print(e)
 
         elif self.apply_mixup:
             raise NotImplementedError
