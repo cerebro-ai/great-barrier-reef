@@ -39,7 +39,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                  transforms=None,
                  copy_paste=False,
                  apply_mixup=False,
-                 min_side_length = None
+                 min_side_length=None
                  ):
         """ Inits the great barrier reef dataset.
 
@@ -131,12 +131,13 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         if self.copy_paste:
             rand_idx = random.randint(0, len(self.annotation_file) - 1)
             image2, target2 = self.pull_item(rand_idx)
-            try:
+            image, boxes = copy_paste_augmentation(image1, target1["boxes"], image2, target2["boxes"])
+            if boxes.shape[0] == 0:
+                rand_idx = random.randint(0, len(self.annotation_file) - 1)
+                image2, target2 = self.pull_item(rand_idx)
                 image, boxes = copy_paste_augmentation(image1, target1["boxes"], image2, target2["boxes"])
-                target = update_target_boxes(target1, boxes)
-            except Exception as e:
-                image, target = image1, target1
-                print(e)
+            target = update_target_boxes(target1, boxes)
+
 
         elif self.apply_mixup:
             raise NotImplementedError
@@ -267,11 +268,11 @@ class RandomCropAroundRandomBox(DualTransform):
         else:
             # choose random box
             bbox = random.choice(params["bboxes"])
-        min_x = bbox[2] - (self.width / img_w)
-        max_x = bbox[0]
+        min_x = bbox[2] - (3 / 4 * self.width / img_w)
+        max_x = bbox[0] - (1 / 4 * self.width / img_w)
 
-        min_y = bbox[3] - (self.height / img_h)
-        max_y = bbox[1]
+        min_y = bbox[3] - (3 / 4 * self.height / img_h)
+        max_y = bbox[1] - (1 / 4 * self.height / img_h)
 
         crop_x = random.uniform(min_x, max_x)
         crop_y = random.uniform(min_y, max_y)
