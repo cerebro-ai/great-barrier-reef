@@ -22,13 +22,13 @@ def test_transformation():
                                           annotation_path=str(Path(path).joinpath("reef_starter_0.05/train_clean.csv")),
                                           transforms=get_transform(True),
                                           copy_paste=True,
-                                          apply_mixup=False)
+                                          apply_mixup=False,
+                                          min_side_length=40)
     data_loader_train = torch.utils.data.DataLoader(
         gbr_dataset, batch_size=3, shuffle=True,
         num_workers=0, collate_fn=collate_fn, pin_memory=True)
     images, targets = next(iter(data_loader_train))
     images = (images * 255).to(device=torch.device('cpu'), dtype=torch.uint8)
-    print(targets)
     fig, axs = plt.subplots(3, 1, figsize=(7, 14))
     for i, image, target, ax in zip(range(images.shape[0]), images, targets, axs):
         print(i, target["image_id"], image.shape)
