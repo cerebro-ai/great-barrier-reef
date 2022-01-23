@@ -138,13 +138,12 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                 image, boxes = copy_paste_augmentation(image1, target1["boxes"], image2, target2["boxes"])
             target = update_target_boxes(target1, boxes)
 
-
         elif self.apply_mixup:
-            raise NotImplementedError
-            # rand_idx = random.randint(0, len(self.annotation_file))
-            # image2, target2 = self.pull_item(rand_idx)
-            # image = 0.5 * image1 + 0.5 * image2
-            # target = combine_targets(target1, target2)
+            rand_idx = random.randint(0, len(self.annotation_file))
+            image2, target2 = self.pull_item(rand_idx)
+            image = 0.5 * image1 + 0.5 * image2
+            boxes = torch.vstack([target1["boxes"], target2["boxes"]])
+            target = update_target_boxes(target1, boxes)
         else:
             image, target = image1, target1
 

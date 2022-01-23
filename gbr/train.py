@@ -53,7 +53,7 @@ def get_data_loaders(root: str,
                                       annotation_path=train_annotations_file,
                                       transforms=get_transform(True, **config_params),
                                       copy_paste=config_params.get("use_copy_paste", False),
-                                      min_side_length=config_params["min_side_length"]
+                                      min_side_length=config_params.get("min_side_length", None)
                                       )
     data_loader_train = torch.utils.data.DataLoader(
         dataset, batch_size=train_batch_size, shuffle=True,
