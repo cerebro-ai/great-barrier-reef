@@ -47,8 +47,8 @@ def copy_paste_augmentation(image1: torch.Tensor, bboxes1: torch.Tensor, image2:
 
         # sample margins
 
-        snippet_x = np.random.randint(max(0, x2 - optimal_w), min(x, max_w - optimal_w)+1)
-        snippet_y = np.random.randint(max(0, y2 - optimal_h), min(y, max_h - optimal_h)+1)
+        snippet_x = np.random.randint(min(max(0, x2 - optimal_w), max_w-1), max(min(x, max_w - optimal_w), 0)+1)
+        snippet_y = np.random.randint(min(max(0, y2 - optimal_h), max_h-1), max(min(y, max_h - optimal_h), 0)+1)
 
         ml = x - snippet_x
         mt = y - snippet_y
