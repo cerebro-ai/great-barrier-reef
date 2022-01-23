@@ -1,5 +1,6 @@
 from typing import Dict
 
+import cv2
 import numpy as np
 import torch
 
@@ -9,14 +10,19 @@ import wandb
 class MultipleVideoBuffer:
     """Wrapper around a dictionary of video buffers"""
 
-    def __init__(self, max_frames=600, fps=18):
+    def __init__(self, max_frames=600, fps=14, video_width=1024, video_height=576):
         self.max_frames = max_frames
         self.fps = fps
+        self.video_height = video_height
+        self.video_width = video_width
         self.video_buffers: Dict[str, VideoBuffer] = {}
 
     def append(self, key: str, value: np.ndarray):
         if key not in self.video_buffers.keys():
-            self.video_buffers[key] = VideoBuffer(max_frames=self.max_frames, fps=self.fps)
+            self.video_buffers[key] = VideoBuffer(max_frames=self.max_frames,
+                                                  fps=self.fps,
+                                                  video_width=self.video_width,
+                                                  video_height=self.video_height)
         self.video_buffers[key].append(value)
 
     def reset(self):
@@ -35,7 +41,7 @@ class VideoBuffer:
 
     """
 
-    def __init__(self, max_frames=600, fps=10):
+    def __init__(self, max_frames=600, fps=10, video_width=1024, video_height=576):
         """
         Args:
             max_frames: Max number of frames per video, if more frames are passed, a new video is started
@@ -43,12 +49,14 @@ class VideoBuffer:
         """
         self.max_frames = max_frames
         self.fps = fps
+        self.video_size = (video_width, video_height)
         self.frames = []  # holds the frames of the current video
         self.videos = []  # holds the video objects
 
     def append(self, image: np.ndarray):
         """Add a new frame at the end of the current frame buffer"""
-        self.frames.append(image)
+        image = cv2.resize(np.moveaxis(image, 0, -1), self.video_size, interpolation=cv2.INTER_LINEAR)
+        self.frames.append(np.moveaxis(image, -1, 0))
         if len(self.frames) >= self.max_frames:
             # generate video
             video = wandb.Video(np.stack(self.frames), fps=self.fps, format="mp4")

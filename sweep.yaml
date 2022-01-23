@@ -4,7 +4,7 @@ program: wandb_train.py
 method: random
 metric:
   goal: maximize
-  name: "validation/F2 score"
+  name: "best_value"
 parameters:
   # training run
   num_epochs:
@@ -12,58 +12,64 @@ parameters:
   eval_every_n_epochs:
     value: 1
   save_every_n_epochs:
-    value: 2
+    value: 1
   train_num_workers:
-    value: 1
+    value: 8
   val_num_workers:
-    value: 1
+    value: 8
   upload_videos:
     value: False
 
   # batch size
   train_batch_size:
-    values: [16, 8, 4]
+    value: 32
   val_batch_size:
-    value: 16
+    value: 32
+  input_size:
+    value: [256, 256]
+  test_size:
+    value: [736, 1312]
 
   # optimizer
+  optimizer:
+    values: [ "Adam", "SGD" ]
   learning_rate:
     distribution: log_uniform
-    max:  -8.11 # 3.e-4
+    max: -9.21 # 1.e-4
     min: -11.51 # 1.e-5
+  weight_decay:
+    distribution: uniform
+    min: 0
+    max: 0.001
+  momentum:
+    distribution: uniform
+    min: 0
+    max: 0.99
   beta_1:
     value: 0.9 # 0.9
   beta_2:
     value: 0.999 # 0.999
-  weight_decay:
-    values: [0, 0.0005, 0.005] # 0
+  nesterov:
+    values: [False, True]
+
 
   # model
   model_name:
-    value: "resnet50"
-  trainable_layers:
-    values: [5, 4, 3, 2]
-  # --> anchor sizes
-  anchor_sizes:
-    values: [
-      "((8, 16, 32), (16, 32, 64), (16, 32, 64), (32, 64, 128), (64, 128, 256))",
-      "((16,), (32,), (64,), (128,), (256,))"
-    ]
-
+    value: "yolox-s"
+  nms_thresh:
+    distribution: uniform
+    max: 0.8
+    min: 0.2
   # augmentations
   rotation_limit:
     distribution: uniform
     min: 0
     max: 90
-  zoom_in:
-    distribution: uniform
-    min: 0.8
-    max: 1
-  zoom_out_1:
+  random_scale:
     distribution: uniform
     min: 0
-    max: 0.3
-  zoom_out_2:
-    distribution: uniform
-    min: 0
-    max: 0.4
+    max: 0.5
+  random_rain_prob:
+    values: [ 0, 0.1, 0.5 ]
+  use_copy_paste:
+    values: [ True, False ]

@@ -5,13 +5,14 @@ import wandb
 import yaml
 
 from gbr.train import train_and_evaluate, get_latest_checkpoint
-from gbr.models.faster_rcnn import fasterrcnn_fpn
+from gbr.models import get_model
 
 with Path("./config.yaml").open("r") as f:
     config = yaml.safe_load(f)
 
 with wandb.init(tags=["sweep"]) as run:
     params = wandb.config
+    config["params"] = params
 
     date_time = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
     model_name = params["model_name"]
@@ -37,19 +38,14 @@ with wandb.init(tags=["sweep"]) as run:
             if existing_checkpoint \
             else None
 
-    model = fasterrcnn_fpn(model_name,
-                           min_size_train=256,
-                           max_size_train=256,
-                           trainable_layers=params["trainable_layers"],
-                           sizes=eval(params["anchor_sizes"])
-                           )
+    model = get_model(model_name, **config)
 
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
     # wide_resnet101_2: train 512x512 -> batch size 13, val 720x1280 -> batch size 16
     # efficientnet_b0: train 512x512 -> batch size 8, val 720x1280 -> batch size 6
     # efficientnet_b7: train 512x512 -> batch size 2, val 720x1280 -> batch size 1
 
-    wandb.watch(model, log_freq=100)
+    wandb.watch(model, log_freq=300)
 
     if "upload_videos" not in params.keys():
         params["upload_videos"] = False

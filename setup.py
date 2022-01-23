@@ -8,15 +8,17 @@ setuptools.setup(
     packages=setuptools.find_packages(include=['gbr', 'gbr.*']),
     install_requires=[
         "torch~=1.10",
-        "torchvision~=0.11.1",
+        "torchvision",
         "pandas",
-        "pillow~=8.4.0",
+        "pillow",
         "numpy",
         "pyyaml",
         "wandb",
         "moviepy",
         "imageio",
         "albumentations",
-        "randomname"
+        "randomname",
+        "mmcv",
+        "easydict"
     ]
 )

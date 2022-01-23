@@ -1,9 +1,13 @@
 """ Created by Dominik Schnaus at 13.12.2021.
 Main file to run the training.
 """
+import os
 from pathlib import Path
 from datetime import datetime
+import random
 
+import numpy as np
+import torch
 import wandb
 import yaml
 import randomname
@@ -11,10 +15,22 @@ import randomname
 from wandb.sdk.wandb_run import Run
 
 from gbr.train import train_and_evaluate, get_latest_checkpoint
-from gbr.models.faster_rcnn import fasterrcnn_fpn
+from gbr.models import get_model
+
+
+def set_all_seeds(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
 
 
 if __name__ == '__main__':
+
+    # set_all_seeds(333)
+
     # load config
     with Path("./config.yaml").open("r") as f:
         config = yaml.safe_load(f)
@@ -52,14 +68,12 @@ if __name__ == '__main__':
             if existing_checkpoint \
             else None
 
-    model = fasterrcnn_fpn(model_name,
-                           min_size_train=256,
-                           max_size_train=256
-                           )
+    model = get_model(model_name, **config)
+
     # resnet50: train 512x512 -> batch size 20, val 720x1280 -> batch size 16
     # wide_resnet101_2: train 512x512 -> batch size 13, val 720x1280 -> batch size 16
-    # efficientnet_b0: train 512x512 -> batch size 8, val 720x1280 -> batch size 6
     # efficientnet_b7: train 512x512 -> batch size 2, val 720x1280 -> batch size 1
+    # efficientnet_b0: train 512x512 -> batch size 8, val 720x1280 -> batch size 6
 
     wandb.watch(model, log_freq=100)
 

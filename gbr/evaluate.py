@@ -198,7 +198,7 @@ def evaluate(model: torch.nn.Module,
                                                  boxes=high_conf_boxes,
                                                  labels=[str(round(x, 3)) for x in prediction["scores"][
                                                      prediction["scores"] >= optimal_threshold].tolist()],
-                                                 font_size=14,
+                                                 font_size=20,
                                                  width=2)  # prediction
 
             # write image into corresponding video buffer

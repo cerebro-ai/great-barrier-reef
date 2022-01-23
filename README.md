@@ -52,16 +52,35 @@ local:
   
   checkpoint_root: "/home/.../great-barrier-reef/checkpoints"
   resume_checkpoint: "2021-12-17T23_32_18/best_model.pth"
-
+  pretrained_weights_root: "/home/.../pretrained_weights"
+  
 params:
-  model_name: resnet50
-  num_epochs: 100
+  model_name: yolox-m
+  num_epochs: 40
   eval_every_n_epochs: 1
-  save_every_n_epochs: 5
-  train_batch_size: 6
-  val_batch_size: 6
+  save_every_n_epochs: 10
+  train_batch_size: 2
+  val_batch_size: 1
   train_num_workers: 0
   val_num_workers: 0
+
+  optimizer: "Adam" # SGD / Adam
   learning_rate: 1.e-4
-  weight_decay: 0
+  weight_decay: 0.0005
+  momentum: 0.9
+  dampening: 0
+  nesterov: False
+  beta_1: 0.9 # Adam
+  beta_2: 0.999 # Adam
+
+  gradient_clipping_norm: 35
+
+  input_size: [512, 512]  # height, width
+  test_size: [736, 1312]  # height, width
+  nms_thresh: 0.65
+
+  rotation_limit: 10
+  random_scale: 0.2
+  random_rain_prob: 0.2
+  use_copy_paste: True
 ```
