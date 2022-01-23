@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 from gbr.data.gbr_dataset import GreatBarrierReefDataset, collate_fn, get_transform
 from gbr.evaluate import evaluate_and_plot
 from gbr.utils.tensorboard_utils import *
-from utils.system import get_cpu_temp
+from gbr.utils.system import get_cpu_temp
 
 
 def get_latest_checkpoint(checkpoints_dir: Path):
