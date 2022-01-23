@@ -17,6 +17,8 @@ from albumentations import DualTransform
 from albumentations.pytorch import transforms as At
 from albumentations.augmentations.crops import functional as F
 
+from gbr.data.augmentations import copy_paste_augmentation
+
 
 class GreatBarrierReefDataset(torch.utils.data.Dataset):
     """GreatBarrierReefDataset.
@@ -37,6 +39,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
                  transforms=None,
                  copy_paste=False,
                  apply_mixup=False,
+                 min_side_length = None
                  ):
         """ Inits the great barrier reef dataset.
 
@@ -58,6 +61,7 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         self.copy_paste = copy_paste
         self.apply_mixup = apply_mixup
         self.transforms = transforms
+        self.min_side_length = min_side_length
 
     def pull_item(self, idx: int):
         """Return an item and apply the per image augmentations
@@ -93,6 +97,13 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
             transformed = self.transforms(image=image, bboxes=target["boxes"], labels=labels)
             image = transformed["image"] / 255
             target["boxes"] = torch.tensor(transformed["bboxes"]).view(-1, 4)
+
+            # filter out all boxes that have a side that is smaller than <min_side_length> pixels
+            if self.min_side_length is not None:
+                target["boxes"] = filter_boxes(
+                    lambda box: torch.minimum(box[2] - box[0], box[3] - box[1]) > self.min_side_length,
+                    target["boxes"])
+
             target["area"] = (target["boxes"][:, 2] - target["boxes"][:, 0]) * (
                     target["boxes"][:, 3] - target["boxes"][:, 1])
 
@@ -120,14 +131,15 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         if self.copy_paste:
             rand_idx = random.randint(0, len(self.annotation_file) - 1)
             image2, target2 = self.pull_item(rand_idx)
-            image, idxs = copy_paste(image1, target1, image2, target2)
-            target = combine_targets(target1, target2, idxs)
+            image, boxes = copy_paste_augmentation(image1, target1["boxes"], image2, target2["boxes"])
+            target = update_target_boxes(target1, boxes)
 
         elif self.apply_mixup:
-            rand_idx = random.randint(0, len(self.annotation_file))
-            image2, target2 = self.pull_item(rand_idx)
-            image = 0.5 * image1 + 0.5 * image2
-            target = combine_targets(target1, target2)
+            raise NotImplementedError
+            # rand_idx = random.randint(0, len(self.annotation_file))
+            # image2, target2 = self.pull_item(rand_idx)
+            # image = 0.5 * image1 + 0.5 * image2
+            # target = combine_targets(target1, target2)
         else:
             image, target = image1, target1
 
@@ -142,50 +154,12 @@ class GreatBarrierReefDataset(torch.utils.data.Dataset):
         return len(self.annotation_file)
 
 
-def copy_paste(image1, t1, image2, t2, margin_min=40, margin_max=60, l1_distance_margin=20):
-    """Copy the boxes from image2 onto image1 with a margin and save distance to the original boxes
-
-    when copying a target, margin specifies how much more from the image should be copied
-    A margin of zero means exactly the box will define the crop
-
-    Args:
-        image1: Image to paste onto
-        t1: Targets from Image1
-        image2: Image to copy from
-        t2: Targets from image2
-        margin_min: Margin will be uniformly sampled between this
-        margin_max: ... and that value
-        l1_distance_margin: Additional margin on the l1 distance
-
-    Returns:
-
-    """
-    image = image1.clone()
-    h, w = image.shape[1:]
-    idxs = []
-    for i, box in enumerate(t2["boxes"]):
-        b_w, b_h = box[2] - box[0], box[3] - box[1]
-
-        if min(b_h, b_w) < 50:
-            # dont select if its just a stripe
-            continue
-
-        # check the distance to all other boxes relative to the box size is large enough
-        if torch.any(l1_dist(center(box), center(t1["boxes"])) <= max(b_w, b_h) + l1_distance_margin):
-            continue
-
-        m1 = random.randint(margin_min, margin_max)
-        m2 = random.randint(margin_min, margin_max)
-        m3 = random.randint(margin_min, margin_max)
-        m4 = random.randint(margin_min, margin_max)
-        x, y, x2, y2 = box.int().tolist()
-        a = max(y - m1, 0)
-        b = min(y2 + m2, h - 1)
-        c = max(x - m3, 0)
-        d = min(x2 + m4, w - 1)
-        image[:, a:b, c:d] = image2[:, a:b, c:d]
-        idxs.append(i)
-    return image, torch.tensor(idxs).long()
+def filter_boxes(f, input_boxes):
+    output = [box for box in input_boxes if f(box)]
+    if len(output) == 0:
+        return torch.tensor([]).view(0, 4)
+    else:
+        return torch.vstack(output).view(-1, 4)
 
 
 def l1_dist(box, boxes):
@@ -198,7 +172,7 @@ def center(boxes: torch.Tensor):
     return boxes[:, 0:2] + 0.5 * boxes[:, 2:]
 
 
-def combine_targets(t1, t2, idxs=None):
+def update_target_boxes(t1, boxes):
     """Combines the targets t1 and t2
 
     Args:
@@ -207,9 +181,6 @@ def combine_targets(t1, t2, idxs=None):
     Returns:
 
     """
-    if idxs is None:
-        idxs = torch.arange(len(t2["boxes"]))
-    boxes = torch.vstack([t1["boxes"], t2["boxes"][idxs]])
     area = (boxes[:, 2] - boxes[:, 0]) * (
             boxes[:, 3] - boxes[:, 1])
     target = t1
@@ -334,12 +305,12 @@ def get_transform(train: bool = True,
     """
     # no default
 
-    rotation_limit = int(config_params.get("rotation_limit", 10))
-    random_scale = config_params.get("random_scale", (0.7, 1.2))
-    random_rain_prob = float(config_params.get("random_rain_prob", 0.2))
+    rotation_limit = int(config_params.get("rotation_limit", 0))
+    random_scale = config_params.get("random_scale", (0.8, 1.05))
+    random_rain_prob = float(config_params.get("random_rain_prob", 0))
 
     if train:
-        h, w = config_params["input_size"]
+        h, w = config_params.get("input_size", (512, 512))
         transforms = [
             A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
             A.Perspective(p=1),
