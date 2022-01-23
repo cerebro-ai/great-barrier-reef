@@ -22,7 +22,7 @@ def copy_paste_augmentation(image1: torch.Tensor, bboxes1: torch.Tensor, image2:
         image, bboxes
 
     """
-    stride = 80
+    stride = 40
 
     image = image1.clone()
     bboxes = [box.tolist() for box in bboxes1]

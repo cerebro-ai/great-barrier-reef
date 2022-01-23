@@ -314,7 +314,7 @@ def get_transform(train: bool = True,
     random_rain_prob = float(config_params.get("random_rain_prob", 0))
 
     if train:
-        h, w = config_params.get("input_size", (512, 512))
+        h, w = config_params.get("input_size", (256, 256))
         transforms = [
             A.Rotate(rotation_limit, border_mode=cv2.BORDER_CONSTANT, p=1),
             A.Perspective(p=1),
