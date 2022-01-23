@@ -43,10 +43,14 @@ Tested with
 
 Currently, supported models include:
 
-- FasterRCNN with backbone
-    - Resnet (resnet18, resnet50)
-    - EfficientNet (efficientnet-d0, efficientnet-d4)
-- YOLOX with CSP-Backbone (yolox-s, yolox-m)
+### FasterRCNN
+With the following backbones
+- Resnet (resnet18, resnet50)
+- EfficientNet (efficientnet-d0, efficientnet-d4)
+
+### YOLOX
+- With CSP-Backbone (yolox-s, yolox-m)
+- Based on the implementation https://github.com/zhangming8/yolox-pytorch
 
 ## Config
 
